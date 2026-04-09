@@ -1,0 +1,6 @@
+node_modules
+dist
+.eventpipe
+*.log
+.DS_Store
+*.bak

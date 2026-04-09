@@ -1,0 +1,8 @@
+{
+  "name": "eventpipe-example-stripe-webhook",
+  "private": true,
+  "scripts": {
+    "build": "node ../../dist/cli.js build --dir .",
+    "push": "node ../../dist/cli.js push --dir ."
+  }
+}

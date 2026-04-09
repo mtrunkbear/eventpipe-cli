@@ -1,0 +1,28 @@
+{
+  "codeNodes": { "src/handler.ts": "nodo1", "src/other.ts": "nodo2" },
+  "flowId": "00000000-0000-0000-0000-000000000000",
+  "nodeId": "code",
+  "entry": "src/handler.ts",
+  "settings": {
+    "timeoutMs": 3000,
+    "pipe": {
+      "schemaVersion": 3,
+      "nodes": [
+        {
+          "id": "code",
+          "type": "code",
+          "config": {}
+        }
+      ],
+      "edges": [],
+      "envContract": {
+        "variables": [
+          {
+            "key": "STRIPE_SECRET_KEY",
+            "description": "Stripe secret key (sk_test_... or sk_live_...). Set values in the dashboard Event tab, not in this repo."
+          }
+        ]
+      }
+    }
+  }
+}
