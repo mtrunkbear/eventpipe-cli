@@ -1,12 +1,14 @@
 import WebSocket from "ws";
+import { forwardWebhookToLocal, type FlowEventWire } from "./forward-local.js";
 import { loadCredentials } from "./credentials.js";
 import { fetchWithSession } from "./auth-fetch.js";
+import type { ListenOptions } from "./listen-args.js";
 
 function formatKb(bytes: number): string {
   return (bytes / 1024).toFixed(1);
 }
 
-export async function cmdListen(webhookId: string): Promise<void> {
+export async function cmdListen(webhookId: string, options: ListenOptions): Promise<void> {
   const wid = webhookId.trim();
   if (!wid) {
     throw new Error("webhook id is required");
@@ -47,6 +49,9 @@ export async function cmdListen(webhookId: string): Promise<void> {
 
   const wsUrl = data.relayWsUrl;
   console.log(`🔌 Conectado a ${wid}`);
+  if (options.forwardTo) {
+    console.error(`↪ forwarding to ${options.forwardTo}`);
+  }
 
   const ws = new WebSocket(wsUrl);
 
@@ -67,25 +72,47 @@ export async function cmdListen(webhookId: string): Promise<void> {
     });
 
     ws.on("message", (buf) => {
-      try {
-        const msg = JSON.parse(buf.toString()) as {
-          type?: string;
-          webhookId?: string;
-          summary?: string;
-          bytes?: number;
-          event?: unknown;
-        };
-        if (msg.type === "ready") {
-          return;
-        }
-        if (msg.type === "webhook") {
+      void (async () => {
+        try {
+          const msg = JSON.parse(buf.toString()) as {
+            type?: string;
+            webhookId?: string;
+            summary?: string;
+            bytes?: number;
+            event?: unknown;
+          };
+          if (msg.type === "ready") {
+            return;
+          }
+          if (msg.type !== "webhook") {
+            return;
+          }
+
           const summary = msg.summary ?? "webhook";
           const bytes = typeof msg.bytes === "number" ? msg.bytes : 0;
-          console.log(`📩 ${summary} (${formatKb(bytes)}KB)`);
+          const event = (msg.event ?? {}) as FlowEventWire;
+
+          if (options.json) {
+            console.log(JSON.stringify({ summary, bytes, event }));
+          } else {
+            console.log(`📩 ${summary} (${formatKb(bytes)}KB)`);
+            if (options.verbose) {
+              console.log(JSON.stringify(event, null, 2));
+            }
+          }
+
+          if (options.forwardTo) {
+            const r = await forwardWebhookToLocal(options.forwardTo, event);
+            if (r.error) {
+              console.error(`↪ forward failed: ${r.error}`);
+            } else {
+              console.error(`↪ forwarded (${r.status})`);
+            }
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
+      })();
     });
 
     ws.on("close", () => resolve());

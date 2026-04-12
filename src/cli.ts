@@ -9,6 +9,7 @@ import { applyPublishedStudioSources, codeNodeUsesLibrary } from "./studio-sourc
 import { cmdLogin } from "./cmd-login.js";
 import { cmdCreate } from "./cmd-create.js";
 import { cmdListen } from "./cmd-listen.js";
+import { parseListenArgv, type ListenOptions } from "./listen-args.js";
 
 function usage() {
   console.log(`eventpipe — Event Pipe CLI
@@ -20,7 +21,9 @@ Environment:
 Commands:
   login                  Browser login (stores ~/.eventpipe/credentials.json)
   create [--name <s>]    Create a webhook endpoint (requires login)
-  listen <webhookId>     Stream incoming webhooks from the relay (requires login)
+  listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]
+                         Stream webhooks; --verbose prints full JSON event; --json one NDJSON line per event;
+                         --forward-to replays the request to your local server (status on stderr)
   build [--dir <path>]   Bundle TS into .eventpipe/
   push [--dir <path>]    build + POST /api/account/pipelines/:id/versions (needs EVENTPIPE_API_KEY)
   help
@@ -170,12 +173,23 @@ async function main() {
   }
 
   if (cmd === "listen") {
-    const webhookId = argv[1]?.trim();
-    if (!webhookId) {
-      console.error("Usage: eventpipe listen <webhookId>");
+    let parsed: { webhookId: string; options: ListenOptions };
+    try {
+      parsed = parseListenArgv(argv.slice(1));
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : e);
+      console.error(
+        "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]",
+      );
       process.exit(1);
     }
-    await cmdListen(webhookId);
+    if (!parsed.webhookId) {
+      console.error(
+        "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]",
+      );
+      process.exit(1);
+    }
+    await cmdListen(parsed.webhookId, parsed.options);
     return;
   }
 

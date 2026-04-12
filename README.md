@@ -37,7 +37,7 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 
 - **`login`** — Opens the browser to complete Supabase login; saves `~/.eventpipe/credentials.json`. Requires `EVENTPIPE_BASE_URL`.
 - **`create [--name <slug>]`** — `POST /api/account/endpoints` (session auth). `--name` sets the URL slug (`/api/webhook/your-slug`) if it’s free; otherwise a random id is used. With no `--name`, the URL and display label are random.
-- **`listen <webhookId>`** — Obtains a short-lived listen token and connects to the relay (`EVENTPIPE_RELAY_WS_URL` on the server). Prints one line per inbound webhook.
+- **`listen <webhookId> [options]`** — Connects to the relay; prints one line per webhook. **`--verbose` / `-v`** prints the full event JSON (method, headers, query, body). **`--json`** prints one JSON object per line (stdout) for scripts. **`--forward-to http://127.0.0.1:PORT/path`** replays each request to your local server (forward status on stderr).
 
 ### Bundles
 
