@@ -16,10 +16,10 @@ Environment:
 
 Commands:
   build [--dir <path>]     Bundle target TS files into .eventpipe/
-  push [--dir <path>]      build + POST /api/account/pipelines/:flowId/versions
+  push [--dir <path>]      build + POST /api/account/pipelines/:pipelineId/versions
   help
 
-eventpipe.json must define flowId and settings.pipe (v3).
+eventpipe.json must define pipelineId and settings.pipe (v3).
 If your flow has multiple code boxes, you must specify a 'codeNodes' map mapping your source files to node IDs.
 Default entry: src/handler.ts — export async function handler(event, context).
 `);
@@ -35,9 +35,9 @@ function parseDir(argv: string[]): string {
   return dir;
 }
 
-function parseFlowOverride(argv: string[]): string | undefined {
+function parsePipelineOverride(argv: string[]): string | undefined {
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--flow" && argv[i + 1]) {
+    if ((argv[i] === "--pipeline" || argv[i] === "--flow") && argv[i + 1]) {
       return argv[++i].trim();
     }
   }
@@ -82,14 +82,14 @@ async function cmdBuild(projectDir: string) {
   }
 }
 
-async function cmdPush(projectDir: string, flowOverride: string | undefined) {
+async function cmdPush(projectDir: string, pipelineOverride: string | undefined) {
   const base = process.env.EVENTPIPE_BASE_URL?.replace(/\/$/, "");
   const key = process.env.EVENTPIPE_API_KEY?.trim();
   if (!base || !key) {
     throw new Error("EVENTPIPE_BASE_URL and EVENTPIPE_API_KEY are required");
   }
   const manifest = await loadManifest(projectDir);
-  const flowId = flowOverride ?? manifest.flowId;
+  const pipelineId = pipelineOverride ?? manifest.pipelineId;
   const pipe = manifest.settings.pipe;
   const ids = collectCodeNodeIds(pipe);
   const targets = resolveTargets(manifest, ids);
@@ -132,7 +132,7 @@ async function cmdPush(projectDir: string, flowOverride: string | undefined) {
   const result = await publishVersion({
     baseUrl: base,
     apiKey: key,
-    flowId,
+    pipelineId,
     manifest: manifestForPublish,
     bundles,
     sourceCode,
@@ -142,7 +142,7 @@ async function cmdPush(projectDir: string, flowOverride: string | undefined) {
     throw new Error(result.error);
   }
   console.log(
-    `Published flow ${flowId} version ${result.version} (${result.bundleSizeBytes ?? totalSize} bytes in ${bundles.length} bundles)`,
+    `Published pipeline ${pipelineId} version ${result.version} (${result.bundleSizeBytes ?? totalSize} bytes in ${bundles.length} bundles)`,
   );
 }
 
@@ -154,14 +154,14 @@ async function main() {
     process.exit(cmd && cmd !== "help" ? 0 : 1);
   }
   const projectDir = parseDir(argv);
-  const flowOverride = parseFlowOverride(argv);
+  const pipelineOverride = parsePipelineOverride(argv);
 
   if (cmd === "build") {
     await cmdBuild(projectDir);
     return;
   }
   if (cmd === "push") {
-    await cmdPush(projectDir, flowOverride);
+    await cmdPush(projectDir, pipelineOverride);
     return;
   }
   usage();

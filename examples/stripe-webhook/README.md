@@ -8,7 +8,7 @@ The official `stripe` npm package bundles to **>200KB**, which exceeds the per-c
 
 ## Setup
 
-1. Create a flow in the dashboard and copy its **flow ID** into `eventpipe.json` (`flowId`).
+1. Create a pipeline in the dashboard and copy its **pipeline ID** into `eventpipe.json` (`pipelineId`).
 2. Create an **API key** under account settings (used as `EVENTPIPE_API_KEY`).
 3. In the flow **Event** tab, set `STRIPE_SECRET_KEY` to your `sk_test_...` or `sk_live_...` secret.
 

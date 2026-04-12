@@ -1,6 +1,6 @@
 {
   "codeNodes": { "src/handler.ts": "nodo1", "src/other.ts": "nodo2" },
-  "flowId": "00000000-0000-0000-0000-000000000000",
+  "pipelineId": "00000000-0000-0000-0000-000000000000",
   "nodeId": "code",
   "entry": "src/handler.ts",
   "settings": {

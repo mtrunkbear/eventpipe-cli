@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 export type EventpipeManifest = {
-  flowId: string;
+  pipelineId: string;
   nodeId?: string;
   entry?: string;
   codeNodes?: Record<string, string>;
@@ -17,9 +17,9 @@ export async function loadManifest(projectDir: string): Promise<EventpipeManifes
     throw new Error("eventpipe.json must be a JSON object");
   }
   const o = parsed as Record<string, unknown>;
-  const flowId = typeof o.flowId === "string" ? o.flowId.trim() : "";
-  if (!flowId) {
-    throw new Error("eventpipe.json: flowId (string) is required");
+  const pipelineId = typeof o.pipelineId === "string" ? o.pipelineId.trim() : "";
+  if (!pipelineId) {
+    throw new Error("eventpipe.json: pipelineId (string) is required");
   }
   const settings = o.settings;
   if (typeof settings !== "object" || settings === null || Array.isArray(settings)) {
@@ -29,7 +29,7 @@ export async function loadManifest(projectDir: string): Promise<EventpipeManifes
   if (pipe === undefined || pipe === null) {
     throw new Error("eventpipe.json: settings.pipe is required for publish");
   }
-  
+
   let codeNodes: Record<string, string> | undefined = undefined;
   if (o.codeNodes !== undefined) {
     if (typeof o.codeNodes !== "object" || o.codeNodes === null || Array.isArray(o.codeNodes)) {
@@ -44,7 +44,7 @@ export async function loadManifest(projectDir: string): Promise<EventpipeManifes
   }
 
   return {
-    flowId,
+    pipelineId,
     nodeId: typeof o.nodeId === "string" ? o.nodeId.trim() : undefined,
     entry: typeof o.entry === "string" ? o.entry.trim() : undefined,
     codeNodes,

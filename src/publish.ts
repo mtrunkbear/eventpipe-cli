@@ -11,7 +11,7 @@ export type PublishResult = {
 export async function publishVersion(params: {
   baseUrl: string;
   apiKey: string;
-  flowId: string;
+  pipelineId: string;
   manifest: EventpipeManifest;
   bundles: Array<{
     nodeId: string;
@@ -20,7 +20,7 @@ export async function publishVersion(params: {
   }>;
   sourceCode?: string | null;
 }): Promise<PublishResult> {
-  const res = await fetch(`${params.baseUrl}/api/account/pipelines/${params.flowId}/versions`, {
+  const res = await fetch(`${params.baseUrl}/api/account/pipelines/${params.pipelineId}/versions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

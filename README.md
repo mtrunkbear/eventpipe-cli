@@ -20,7 +20,7 @@ cd eventpipe-cli && pnpm install && pnpm run build
 
 | File | Purpose |
 |------|---------|
-| `eventpipe.json` | `flowId`, optional `nodeId` / `entry`, and `settings` (must include `pipe` v3) |
+| `eventpipe.json` | `pipelineId`, optional `nodeId` / `entry`, and `settings` (must include `pipe` v3) |
 | `src/handler.ts` | Default entry — `export async function handler(event, context)` |
 
 Runtime uses **`context.env`** for secrets (configure values in the app **Event** tab), not `process.env`.
@@ -28,14 +28,14 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 ## Commands
 
 - **`build`** — Writes `.eventpipe/bundle.js` and prints size + sha256 (must be ≤ 200KB).
-- **`push`** — Runs `build`, then `POST /api/account/pipelines/:flowId/versions` with `codeBundles`.
+- **`push`** — Runs `build`, then `POST /api/account/pipelines/:pipelineId/versions` with `codeBundles`.
 
 Environment for `push`:
 
 - `EVENTPIPE_BASE_URL` — Origin of your Next app (no trailing slash).
 - `EVENTPIPE_API_KEY` — Plaintext key from account API keys (`evp_...`).
 
-Optional: `--flow <uuid>` overrides `flowId` in `eventpipe.json`.
+Optional: `--pipeline <uuid>` (or `--flow`) overrides `pipelineId` in `eventpipe.json`.
 
 ## Example
 
