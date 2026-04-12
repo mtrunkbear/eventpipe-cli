@@ -154,8 +154,8 @@ Prints built-in usage.
 
 Publishing creates an **immutable version** of your pipeline; production uses the **current live** version when the pipeline is enabled.
 
-1. **Create the pipeline** in **Pipe Studio** and copy **`pipelineId`** (UUID) into **`eventpipe.json`**.
-2. Ensure **`settings.pipe`** matches your graph — for one code node, the node **`id`** in the pipe must match what you bundle (default file **`src/handler.ts`**).
+1. **Create the pipeline** in **Pipe Studio**. In the **Event** tab, open **IDs for CLI & API**: copy **Pipeline id** into **`eventpipe.json`** as **`pipelineId`**. That value is **not** the same as the **Webhook endpoint id** (used in `/webhook/…` and for **`listen`**).
+2. Ensure **`settings.pipe`** matches your graph — for one code node, the code node **`id`** in the graph must match what you bundle (see **Code** tab for **Code node ids**). Default entry file: **`src/handler.ts`**.
 3. **`eventpipe login`** once on the machine.
 4. **`eventpipe push`** from the project root (or **`--dir`**).
 
