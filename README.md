@@ -1,6 +1,6 @@
 # @eventpipe/cli
 
-Build **Event Pipe** code-node bundles with [esbuild](https://esbuild.github.io/) and publish them with an **account API key** (`x-api-key`), same auth as the dashboard.
+Build **Event Pipe** code-node bundles with [esbuild](https://esbuild.github.io/), publish with an **API key**, and use **login / create / listen** against the dashboard (Supabase session + relay WebSocket).
 
 ## Install
 
@@ -9,11 +9,17 @@ pnpm add -D @eventpipe/cli
 # or: npm i -D @eventpipe/cli
 ```
 
+Global install (provides `eventpipe` and `eventpipe-cli`):
+
+```bash
+npm install -g @eventpipe/cli
+```
+
 From a git checkout:
 
 ```bash
 cd eventpipe-cli && pnpm install && pnpm run build
-# binary: ./dist/cli.js
+# binaries: ./dist/cli.js
 ```
 
 ## Project layout
@@ -27,15 +33,29 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 
 ## Commands
 
-- **`build`** — Writes `.eventpipe/bundle.js` and prints size + sha256 (must be ≤ 200KB).
+### Auth & endpoints
+
+- **`login`** — Opens the browser to complete Supabase login; saves `~/.eventpipe/credentials.json`. Requires `EVENTPIPE_BASE_URL`.
+- **`create [--name <label>]`** — `POST /api/account/endpoints` (session auth). Free tier must use `login` (not API key) for writes.
+- **`listen <webhookId>`** — Obtains a short-lived listen token and connects to the relay (`EVENTPIPE_RELAY_WS_URL` on the server). Prints one line per inbound webhook.
+
+### Bundles
+
+- **`build`** — Writes `.eventpipe/*.bundle.js` and prints size + sha256 (must be ≤ 200KB).
 - **`push`** — Runs `build`, then `POST /api/account/pipelines/:pipelineId/versions` with `codeBundles`.
 
-Environment for `push`:
+### Environment
 
-- `EVENTPIPE_BASE_URL` — Origin of your Next app (no trailing slash).
-- `EVENTPIPE_API_KEY` — Plaintext key from account API keys (`evp_...`).
+| Variable | Used by | Description |
+|----------|---------|-------------|
+| `EVENTPIPE_BASE_URL` | login, create, listen, push | Origin of the Next app (no trailing slash) |
+| `EVENTPIPE_API_KEY` | push | Plaintext key from account API keys (`evp_...`) |
 
-Optional: `--pipeline <uuid>` (or `--flow`) overrides `pipelineId` in `eventpipe.json`.
+Optional: `--pipeline <uuid>` (or `--flow`) overrides `pipelineId` in `eventpipe.json` for `push`.
+
+### Server requirements for `listen`
+
+The app needs a deployed **eventpipe-relay** (or compatible) service plus env vars documented in the app `.env.example`: `EVENTPIPE_RELAY_URL`, `EVENTPIPE_RELAY_WS_URL`, `EVENTPIPE_RELAY_INGEST_SECRET`, `EVENTPIPE_LISTEN_JWT_SECRET` (shared with the relay).
 
 ## Example
 

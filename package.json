@@ -1,10 +1,11 @@
 {
   "name": "@eventpipe/cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Build and publish Event Pipe flow bundles (API key auth)",
   "type": "module",
   "bin": {
-    "eventpipe": "./dist/cli.js"
+    "eventpipe": "./dist/cli.js",
+    "eventpipe-cli": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -18,9 +19,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/ws": "^8.5.13",
     "@types/node": "^20",
     "typescript": "^5"
   }

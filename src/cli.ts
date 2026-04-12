@@ -6,22 +6,26 @@ import { collectCodeNodeIds } from "./code-node-ids.js";
 import { loadManifest, type EventpipeManifest } from "./config.js";
 import { publishVersion } from "./publish.js";
 import { applyPublishedStudioSources, codeNodeUsesLibrary } from "./studio-sources.js";
+import { cmdLogin } from "./cmd-login.js";
+import { cmdCreate } from "./cmd-create.js";
+import { cmdListen } from "./cmd-listen.js";
 
 function usage() {
   console.log(`eventpipe — Event Pipe CLI
 
 Environment:
-  EVENTPIPE_BASE_URL   Dashboard origin (e.g. https://app.example.com)
-  EVENTPIPE_API_KEY    Account API key (header x-api-key)
+  EVENTPIPE_BASE_URL   App origin (e.g. https://app.example.com), required for login/create/listen
+  EVENTPIPE_API_KEY    Account API key (x-api-key) for push when not using session
 
 Commands:
-  build [--dir <path>]     Bundle target TS files into .eventpipe/
-  push [--dir <path>]      build + POST /api/account/pipelines/:pipelineId/versions
+  login                  Browser login (stores ~/.eventpipe/credentials.json)
+  create [--name <s>]    Create a webhook endpoint (requires login)
+  listen <webhookId>     Stream incoming webhooks from the relay (requires login)
+  build [--dir <path>]   Bundle TS into .eventpipe/
+  push [--dir <path>]    build + POST /api/account/pipelines/:id/versions (needs EVENTPIPE_API_KEY)
   help
 
-eventpipe.json must define pipelineId and settings.pipe (v3).
-If your flow has multiple code boxes, you must specify a 'codeNodes' map mapping your source files to node IDs.
-Default entry: src/handler.ts — export async function handler(event, context).
+eventpipe.json must define pipelineId and settings.pipe (v3) for build/push.
 `);
 }
 
@@ -60,7 +64,7 @@ function resolveTargets(manifest: EventpipeManifest, ids: string[]): Record<stri
     return { [entry]: ids[0] };
   }
   throw new Error(
-    "Multiple code nodes detected in your flow. You must specify a 'codeNodes' map in eventpipe.json (e.g. { \"src/node.ts\": \"uuid\" })."
+    "Multiple code nodes detected in your flow. You must specify a 'codeNodes' map in eventpipe.json (e.g. { \"src/node.ts\": \"uuid\" }).",
   );
 }
 
@@ -137,7 +141,7 @@ async function cmdPush(projectDir: string, pipelineOverride: string | undefined)
     bundles,
     sourceCode,
   });
-  
+
   if (result.error) {
     throw new Error(result.error);
   }
@@ -149,10 +153,32 @@ async function cmdPush(projectDir: string, pipelineOverride: string | undefined)
 async function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
+
   if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") {
     usage();
     process.exit(cmd && cmd !== "help" ? 0 : 1);
   }
+
+  if (cmd === "login") {
+    await cmdLogin();
+    return;
+  }
+
+  if (cmd === "create") {
+    await cmdCreate(argv.slice(1));
+    return;
+  }
+
+  if (cmd === "listen") {
+    const webhookId = argv[1]?.trim();
+    if (!webhookId) {
+      console.error("Usage: eventpipe listen <webhookId>");
+      process.exit(1);
+    }
+    await cmdListen(webhookId);
+    return;
+  }
+
   const projectDir = parseDir(argv);
   const pipelineOverride = parsePipelineOverride(argv);
 
@@ -164,6 +190,7 @@ async function main() {
     await cmdPush(projectDir, pipelineOverride);
     return;
   }
+
   usage();
   process.exit(1);
 }
