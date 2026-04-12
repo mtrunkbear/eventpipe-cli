@@ -28,7 +28,14 @@ export async function cmdCreate(argv: string[]): Promise<void> {
     cred,
   );
 
-  const data = (await response.json()) as { error?: string; webhookId?: string; webhookUrl?: string };
+  const data = (await response.json()) as {
+    error?: string;
+    webhookId?: string;
+    webhookUrl?: string;
+    label?: string;
+    slugUnavailable?: boolean;
+    requestedSlug?: string;
+  };
   if (!response.ok) {
     throw new Error(data.error ?? response.statusText);
   }
@@ -37,5 +44,12 @@ export async function cmdCreate(argv: string[]): Promise<void> {
     throw new Error("Unexpected response from API");
   }
 
-  console.log(`✓ Endpoint created: ${data.webhookUrl}`);
+  if (data.slugUnavailable && data.requestedSlug) {
+    console.log(
+      `⚠ Slug "${data.requestedSlug}" is already taken; created with a random id instead.`,
+    );
+  }
+
+  const labelNote = data.label ? ` (${data.label})` : "";
+  console.log(`✓ Endpoint created: ${data.webhookUrl}${labelNote}`);
 }
