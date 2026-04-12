@@ -28,7 +28,7 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 ## Commands
 
 - **`build`** — Writes `.eventpipe/bundle.js` and prints size + sha256 (must be ≤ 200KB).
-- **`push`** — Runs `build`, then `POST /api/account/flows/:flowId/versions` with `codeBundles`.
+- **`push`** — Runs `build`, then `POST /api/account/pipelines/:flowId/versions` with `codeBundles`.
 
 Environment for `push`:
 

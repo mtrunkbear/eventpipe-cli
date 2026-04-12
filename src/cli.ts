@@ -16,7 +16,7 @@ Environment:
 
 Commands:
   build [--dir <path>]     Bundle target TS files into .eventpipe/
-  push [--dir <path>]      build + POST /api/account/flows/:flowId/versions
+  push [--dir <path>]      build + POST /api/account/pipelines/:flowId/versions
   help
 
 eventpipe.json must define flowId and settings.pipe (v3).

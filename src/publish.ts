@@ -20,7 +20,7 @@ export async function publishVersion(params: {
   }>;
   sourceCode?: string | null;
 }): Promise<PublishResult> {
-  const res = await fetch(`${params.baseUrl}/api/account/flows/${params.flowId}/versions`, {
+  const res = await fetch(`${params.baseUrl}/api/account/pipelines/${params.flowId}/versions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
