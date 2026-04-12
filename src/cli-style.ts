@@ -30,9 +30,9 @@ function lerp(a: number, b: number, t: number): number {
 }
 
 function gradientRgb(t: number): [number, number, number] {
-  const c1: [number, number, number] = [135, 206, 250];
-  const c2: [number, number, number] = [186, 148, 255];
-  const c3: [number, number, number] = [255, 150, 180];
+  const c1: [number, number, number] = [79, 209, 197];
+  const c2: [number, number, number] = [72, 188, 210];
+  const c3: [number, number, number] = [106, 154, 232];
   if (t <= 0.5) {
     const u = t / 0.5;
     return [lerp(c1[0], c2[0], u), lerp(c1[1], c2[1], u), lerp(c1[2], c2[2], u)];
@@ -49,7 +49,7 @@ function colorizeAsciiLine(line: string, maxLen: number, color: boolean): string
   for (let i = 0; i < line.length; i++) {
     const ch = line[i]!;
     if (ch === " ") {
-      out += `${DIM}\x1b[38;2;80;80;95m${ch}${RESET}`;
+      out += `${DIM}\x1b[38;2;58;60;72m${ch}${RESET}`;
       continue;
     }
     const t = maxLen > 1 ? i / (maxLen - 1) : 0;
@@ -63,7 +63,7 @@ function colorizeChevronLine(line: string, color: boolean): string {
   if (!color) {
     return line;
   }
-  const [r, g, b] = [110, 170, 255];
+  const [r, g, b] = [79, 209, 197];
   return `${rgbFg(r, g, b)}${line}${RESET}`;
 }
 
@@ -79,7 +79,7 @@ export function printBanner(color: boolean = useColor()): void {
   console.log("");
 }
 
-const ACCENT = "\x1b[38;2;186;148;255m";
+const ACCENT = "\x1b[38;2;79;209;197m";
 
 export function printUsage(version: string, baseUrlHint: string): void {
   const color = useColor();
