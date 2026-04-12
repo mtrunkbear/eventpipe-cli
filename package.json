@@ -1,7 +1,7 @@
 {
   "name": "@eventpipe/cli",
   "version": "0.2.2",
-  "description": "Build and publish Event Pipe flow bundles (API key auth)",
+  "description": "Build and publish Event Pipe flow bundles (session or API key)",
   "type": "module",
   "bin": {
     "eventpipe": "./dist/cli.js",

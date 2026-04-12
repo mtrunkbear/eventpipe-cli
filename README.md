@@ -14,7 +14,7 @@ Use this CLI when you want to work locally with TypeScript, automate publishes w
 |------|-------------------|
 | **Account** | Sign in with your browser (`login`) — same account as on the web app. |
 | **Webhooks** | Create new webhook endpoints (`create`) and stream events in real time (`listen`). |
-| **Code & deploy** | Bundle your handler with esbuild (`build`) and upload a new pipeline version (`push`). |
+| **Code & deploy** | Bundle your handler with esbuild (`build`) and upload a new pipeline version (`push`) using your **login** or an **API key** in CI. |
 | **Tooling** | Check the installed version, update from npm, and opt out of update hints in CI. |
 
 ---
@@ -95,13 +95,14 @@ node dist/cli.js --help
    eventpipe listen <webhookId>
    ```
 
-4. **In a project with `eventpipe.json`**, build and publish:
+4. **In a project with `eventpipe.json`**, build and publish (uses the same login as step 1):
 
    ```bash
    eventpipe build
-   export EVENTPIPE_API_KEY=evp_your_key   # from Account → API keys on the app
    eventpipe push
    ```
+
+   In **CI or automation**, set an API key instead of interactive login: `export EVENTPIPE_API_KEY=evp_…` (from **Account → API keys** in the app). If both login and `EVENTPIPE_API_KEY` exist, the key wins.
 
 ---
 
@@ -160,15 +161,23 @@ Reads **`eventpipe.json`** in the project (or `--dir`), bundles your code nodes 
 
 ### `eventpipe push [--dir <path>]`
 
-Runs **`build`**, then uploads a **new version** of your pipeline to Event Pipe using your **API key** (not the browser session).
+Runs **`build`**, then uploads a **new version** of your pipeline. Authentication:
+
+| Mode | When |
+|------|------|
+| **Session (default)** | After **`eventpipe login`**. The CLI sends your Supabase access token as `Authorization: Bearer …`, same as the dashboard. |
+| **API key** | Set **`EVENTPIPE_API_KEY`** (e.g. in CI). If the variable is set, it is used **instead of** the saved login. |
 
 | Need | Detail |
 |------|--------|
-| `EVENTPIPE_API_KEY` | **Required.** Create an API key in the app (format like `evp_…`). |
-| `EVENTPIPE_BASE_URL` | Optional; defaults to `https://eventpipe.app`. |
+| `EVENTPIPE_BASE_URL` | Only for **API key** pushes when not using default app; defaults to `https://eventpipe.app`. Session pushes use the URL stored at login. |
 | `--pipeline <uuid>` or `--flow <uuid>` | Optional; overrides `pipelineId` in `eventpipe.json` for this push only. |
 
-Example:
+Examples:
+
+```bash
+eventpipe push --dir ./my-flow
+```
 
 ```bash
 export EVENTPIPE_API_KEY=evp_xxxxxxxx
@@ -211,8 +220,8 @@ Prints built-in usage.
 
 | Variable | When it matters | Description |
 |----------|-----------------|-------------|
-| **`EVENTPIPE_BASE_URL`** | `login`, `push` | App origin, no trailing slash. **Default:** `https://eventpipe.app`. Use your own origin for self-hosted deployments. |
-| **`EVENTPIPE_API_KEY`** | `push` | Account API key (`evp_…`). Required to publish versions from the CLI. |
+| **`EVENTPIPE_BASE_URL`** | `login`, `push` (with API key) | App origin, no trailing slash. **Default:** `https://eventpipe.app`. Session-based `push` uses the URL from `login`. |
+| **`EVENTPIPE_API_KEY`** | `push` (optional) | Account API key (`evp_…`). Use in CI or to override the saved session. |
 | **`EVENTPIPE_SKIP_UPDATE_CHECK`** | any | Set to `1` to disable the occasional **“newer version on npm”** message on stderr (useful in CI). |
 
 ---
