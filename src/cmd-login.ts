@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
+import { resolveEventpipeBaseUrl } from "./base-url.js";
 import { saveCredentials, type StoredCredentials } from "./credentials.js";
 
 const cors: Record<string, string> = {
@@ -21,10 +22,7 @@ function openBrowser(url: string): void {
 }
 
 export async function cmdLogin(): Promise<void> {
-  const base = process.env.EVENTPIPE_BASE_URL?.replace(/\/$/, "").trim();
-  if (!base) {
-    throw new Error("EVENTPIPE_BASE_URL is required (e.g. https://app.example.com)");
-  }
+  const base = resolveEventpipeBaseUrl();
 
   const port = randomInt(47_890, 48_000);
 

@@ -15,6 +15,18 @@ Global install (provides `eventpipe` and `eventpipe-cli`):
 npm install -g @eventpipe/cli
 ```
 
+**macOS / Linux** — from a clone of this repo, installs globally (requires Node 20+ and `npm` on `PATH`):
+
+```bash
+bash install/macos.sh
+```
+
+**Windows** — PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass; .\install\windows.ps1
+```
+
 From a git checkout:
 
 ```bash
@@ -35,7 +47,7 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 
 ### Auth & endpoints
 
-- **`login`** — Opens the browser to complete Supabase login; saves `~/.eventpipe/credentials.json`. Requires `EVENTPIPE_BASE_URL`.
+- **`login`** — Opens the browser to complete Supabase login; saves `~/.eventpipe/credentials.json`. Uses `https://eventpipe.app` unless `EVENTPIPE_BASE_URL` is set.
 - **`create [--name <slug>]`** — `POST /api/account/endpoints` (session auth). `--name` sets the URL slug (`/api/webhook/your-slug`) if it’s free; otherwise a random id is used. With no `--name`, the URL and display label are random.
 - **`listen <webhookId> [options]`** — Connects to the relay; prints one line per webhook. **`--verbose` / `-v`** prints the full event JSON (method, headers, query, body). **`--json`** prints one JSON object per line (stdout) for scripts. **`--forward-to http://127.0.0.1:PORT/path`** replays each request to your local server (forward status on stderr).
 
@@ -48,7 +60,7 @@ Runtime uses **`context.env`** for secrets (configure values in the app **Event*
 
 | Variable | Used by | Description |
 |----------|---------|-------------|
-| `EVENTPIPE_BASE_URL` | login, create, listen, push | Origin of the Next app (no trailing slash) |
+| `EVENTPIPE_BASE_URL` | login, push | Origin of the Next app (default `https://eventpipe.app`; no trailing slash) |
 | `EVENTPIPE_API_KEY` | push | Plaintext key from account API keys (`evp_...`) |
 
 Optional: `--pipeline <uuid>` (or `--flow`) overrides `pipelineId` in `eventpipe.json` for `push`.

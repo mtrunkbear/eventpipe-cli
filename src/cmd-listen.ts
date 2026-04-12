@@ -14,11 +14,7 @@ export async function cmdListen(webhookId: string, options: ListenOptions): Prom
     throw new Error("webhook id is required");
   }
 
-  const base = process.env.EVENTPIPE_BASE_URL?.replace(/\/$/, "").trim();
   const cred = await loadCredentials();
-  if (!cred && !base) {
-    throw new Error("Run eventpipe login first or set EVENTPIPE_BASE_URL");
-  }
   if (!cred) {
     throw new Error("Run eventpipe login first");
   }

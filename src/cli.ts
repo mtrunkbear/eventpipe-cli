@@ -8,6 +8,13 @@ import { publishVersion } from "./publish.js";
 import { applyPublishedStudioSources, codeNodeUsesLibrary } from "./studio-sources.js";
 import { cmdLogin } from "./cmd-login.js";
 import { cmdCreate } from "./cmd-create.js";
+import { resolveEventpipeBaseUrl } from "./base-url.js";
+import {
+  fetchLatestPublishedVersion,
+  isPublishedVersionNewer,
+  readInstalledCliVersion,
+} from "./cli-version.js";
+import { cmdUpdate } from "./cmd-update.js";
 import { cmdListen } from "./cmd-listen.js";
 import { parseListenArgv, type ListenOptions } from "./listen-args.js";
 
@@ -15,8 +22,9 @@ function usage() {
   console.log(`eventpipe — Event Pipe CLI
 
 Environment:
-  EVENTPIPE_BASE_URL   App origin (e.g. https://app.example.com), required for login/create/listen
+  EVENTPIPE_BASE_URL   App origin (default: https://eventpipe.app); override for self-hosted
   EVENTPIPE_API_KEY    Account API key (x-api-key) for push when not using session
+  EVENTPIPE_SKIP_UPDATE_CHECK   Set to 1 to disable the npm version hint on stderr
 
 Commands:
   login                  Browser login (stores ~/.eventpipe/credentials.json)
@@ -26,10 +34,29 @@ Commands:
                          --forward-to replays the request to your local server (status on stderr)
   build [--dir <path>]   Bundle TS into .eventpipe/
   push [--dir <path>]    build + POST /api/account/pipelines/:id/versions (needs EVENTPIPE_API_KEY)
+  update                 npm install -g @eventpipe/cli@latest
   help
 
 eventpipe.json must define pipelineId and settings.pipe (v3) for build/push.
 `);
+}
+
+async function maybeSuggestUpdate(): Promise<void> {
+  try {
+    if (process.env.EVENTPIPE_SKIP_UPDATE_CHECK === "1") {
+      return;
+    }
+    const v = await readInstalledCliVersion();
+    const latest = await fetchLatestPublishedVersion();
+    if (!latest || !isPublishedVersionNewer(v, latest)) {
+      return;
+    }
+    console.error(
+      `\nA newer @eventpipe/cli is available (latest: ${latest}). Run: eventpipe update\n`,
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 function parseDir(argv: string[]): string {
@@ -90,10 +117,10 @@ async function cmdBuild(projectDir: string) {
 }
 
 async function cmdPush(projectDir: string, pipelineOverride: string | undefined) {
-  const base = process.env.EVENTPIPE_BASE_URL?.replace(/\/$/, "");
+  const base = resolveEventpipeBaseUrl();
   const key = process.env.EVENTPIPE_API_KEY?.trim();
-  if (!base || !key) {
-    throw new Error("EVENTPIPE_BASE_URL and EVENTPIPE_API_KEY are required");
+  if (!key) {
+    throw new Error("EVENTPIPE_API_KEY is required for push");
   }
   const manifest = await loadManifest(projectDir);
   const pipelineId = pipelineOverride ?? manifest.pipelineId;
@@ -162,13 +189,26 @@ async function main() {
     process.exit(cmd && cmd !== "help" ? 0 : 1);
   }
 
+  if (cmd === "-v" || cmd === "--version") {
+    const v = await readInstalledCliVersion();
+    console.log(v);
+    return;
+  }
+
   if (cmd === "login") {
     await cmdLogin();
+    void maybeSuggestUpdate();
     return;
   }
 
   if (cmd === "create") {
     await cmdCreate(argv.slice(1));
+    void maybeSuggestUpdate();
+    return;
+  }
+
+  if (cmd === "update") {
+    await cmdUpdate();
     return;
   }
 
@@ -189,6 +229,7 @@ async function main() {
       );
       process.exit(1);
     }
+    void maybeSuggestUpdate();
     await cmdListen(parsed.webhookId, parsed.options);
     return;
   }
@@ -198,10 +239,12 @@ async function main() {
 
   if (cmd === "build") {
     await cmdBuild(projectDir);
+    void maybeSuggestUpdate();
     return;
   }
   if (cmd === "push") {
     await cmdPush(projectDir, pipelineOverride);
+    void maybeSuggestUpdate();
     return;
   }
 
