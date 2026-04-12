@@ -9,12 +9,11 @@ The official `stripe` npm package bundles to **>200KB**, which exceeds the per-c
 ## Setup
 
 1. Create a pipeline in the dashboard and copy its **pipeline ID** into `eventpipe.json` (`pipelineId`).
-2. Create an **API key** under account settings (used as `EVENTPIPE_API_KEY`).
-3. In the flow **Event** tab, set `STRIPE_SECRET_KEY` to your `sk_test_...` or `sk_live_...` secret.
+2. In the flow **Event** tab, set `STRIPE_SECRET_KEY` to your `sk_test_...` or `sk_live_...` secret.
 
 ## Commands
 
-From the **`eventpipe-cli` repo root**:
+From the **`eventpipe-cli` repo root`:
 
 ```bash
 pnpm install
@@ -23,15 +22,15 @@ cd examples/stripe-webhook
 pnpm run build
 ```
 
-Publish a new version (requires env):
+Sign in once, then publish a new version:
 
 ```bash
-export EVENTPIPE_BASE_URL=https://your-app.example.com
-export EVENTPIPE_API_KEY=evp_...
+eventpipe login
+# optional self-hosted: export EVENTPIPE_BASE_URL=https://your-app.example.com
 pnpm run push
 ```
 
-Override flow id without editing the file:
+Override pipeline id without editing the file:
 
 ```bash
 node ../../dist/cli.js push --dir . --flow "<uuid>"

@@ -4,12 +4,11 @@ import { resolve } from "node:path";
 import { buildBundle } from "./build-bundle.js";
 import { collectCodeNodeIds } from "./code-node-ids.js";
 import { loadManifest, type EventpipeManifest } from "./config.js";
-import { publishVersion, type PublishAuth } from "./publish.js";
+import { publishVersion } from "./publish.js";
 import { applyPublishedStudioSources, codeNodeUsesLibrary } from "./studio-sources.js";
 import { cmdLogin } from "./cmd-login.js";
 import { cmdCreate } from "./cmd-create.js";
 import { loadCredentials } from "./credentials.js";
-import { resolveEventpipeBaseUrl } from "./base-url.js";
 import {
   fetchLatestPublishedVersion,
   isPublishedVersionNewer,
@@ -23,8 +22,7 @@ function usage() {
   console.log(`eventpipe — Event Pipe CLI
 
 Environment:
-  EVENTPIPE_BASE_URL   App origin (default: https://eventpipe.app); override for self-hosted
-  EVENTPIPE_API_KEY    Optional; for push in CI/automation (overrides session if set)
+  EVENTPIPE_BASE_URL   App origin for login (default: https://eventpipe.app); override for self-hosted
   EVENTPIPE_SKIP_UPDATE_CHECK   Set to 1 to disable the npm version hint on stderr
 
 Commands:
@@ -34,7 +32,7 @@ Commands:
                          Stream webhooks; --verbose prints full JSON event; --json one NDJSON line per event;
                          --forward-to replays the request to your local server (status on stderr)
   build [--dir <path>]   Bundle TS into .eventpipe/
-  push [--dir <path>]    build + publish (session after login, or EVENTPIPE_API_KEY)
+  push [--dir <path>]    build + publish (requires eventpipe login)
   update                 npm install -g @eventpipe/cli@latest
   help
 
@@ -118,18 +116,10 @@ async function cmdBuild(projectDir: string) {
 }
 
 async function cmdPush(projectDir: string, pipelineOverride: string | undefined) {
-  const key = process.env.EVENTPIPE_API_KEY?.trim();
   const cred = await loadCredentials();
-  let auth: PublishAuth | null = null;
-  if (key) {
-    auth = { type: "apiKey", apiKey: key };
-  } else if (cred) {
-    auth = { type: "session", cred };
+  if (!cred) {
+    throw new Error("Run eventpipe login before push");
   }
-  if (!auth) {
-    throw new Error("Run eventpipe login first, or set EVENTPIPE_API_KEY for push (e.g. in CI)");
-  }
-  const base = auth.type === "session" ? auth.cred.baseUrl : resolveEventpipeBaseUrl();
   const manifest = await loadManifest(projectDir);
   const pipelineId = pipelineOverride ?? manifest.pipelineId;
   const pipe = manifest.settings.pipe;
@@ -172,8 +162,7 @@ async function cmdPush(projectDir: string, pipelineOverride: string | undefined)
       : null;
 
   const result = await publishVersion({
-    baseUrl: base,
-    auth,
+    cred,
     pipelineId,
     manifest: manifestForPublish,
     bundles,

@@ -10,13 +10,8 @@ export type PublishResult = {
   error?: string;
 };
 
-export type PublishAuth =
-  | { type: "apiKey"; apiKey: string }
-  | { type: "session"; cred: StoredCredentials };
-
 export async function publishVersion(params: {
-  baseUrl: string;
-  auth: PublishAuth;
+  cred: StoredCredentials;
   pipelineId: string;
   manifest: EventpipeManifest;
   bundles: Array<{
@@ -26,7 +21,8 @@ export async function publishVersion(params: {
   }>;
   sourceCode?: string | null;
 }): Promise<PublishResult> {
-  const url = `${params.baseUrl}/api/account/pipelines/${params.pipelineId}/versions`;
+  const baseUrl = params.cred.baseUrl.replace(/\/$/, "");
+  const url = `${baseUrl}/api/account/pipelines/${params.pipelineId}/versions`;
   const body = JSON.stringify({
     sourceCode: params.sourceCode ?? null,
     buildMeta: {
@@ -37,28 +33,15 @@ export async function publishVersion(params: {
     codeBundles: params.bundles,
   });
 
-  let res: Response;
-  if (params.auth.type === "apiKey") {
-    res = await fetch(url, {
+  const { response: res } = await fetchWithSession(
+    url,
+    {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": params.auth.apiKey,
-      },
+      headers: { "content-type": "application/json" },
       body,
-    });
-  } else {
-    const out = await fetchWithSession(
-      url,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body,
-      },
-      params.auth.cred,
-    );
-    res = out.response;
-  }
+    },
+    params.cred,
+  );
 
   const data = (await res.json()) as PublishResult & { error?: string };
   if (!res.ok) {

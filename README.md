@@ -1,6 +1,6 @@
 # Event Pipe CLI
 
-Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundle code nodes with [esbuild](https://esbuild.github.io/), **publish new pipeline versions**, create webhook endpoints, and stream events to your machine.
+Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundle code nodes with [esbuild](https://esbuild.github.io/), **publish new pipeline versions**, create webhook endpoints, stream captured traffic, and keep your handler in sync with Git.
 
 **Website:** [eventpipe.app](https://eventpipe.app) · **npm:** [`@eventpipe/cli`](https://www.npmjs.com/package/@eventpipe/cli)
 
@@ -10,18 +10,20 @@ Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundl
 
 | Area | What the CLI does |
 |------|-------------------|
-| **Publish** | Run **`eventpipe push`** after **`eventpipe login`** to upload a new pipeline version (same API as Pipe Studio). |
-| **CI** | Set **`EVENTPIPE_API_KEY`** so **`push`** works without a browser. |
-| **Webhooks** | **`create`** endpoints and **`listen`** to the relay (with optional **`--forward-to`** for local replay). |
-| **Tooling** | **`eventpipe update`**, **`--version`**, and optional npm version hints on stderr. |
+| **Account** | Sign in with the browser (`login`) — same account as the web app; credentials are stored locally for later commands. |
+| **Webhooks** | Create endpoints (`create`), listen to the relay in real time (`listen`), optionally **replay** requests to a local URL (`--forward-to`). |
+| **Bundles** | Compile TypeScript handlers to `.eventpipe/` (`build`) with size and sha256 output. |
+| **Deploy** | Publish a **new pipeline version** (`push`) using your saved session after `login` — same server route as Pipe Studio. |
+| **Tooling** | Print version (`--version`), upgrade the CLI (`update`), and optional npm “newer version” hints on stderr. |
 
 ---
 
 ## Requirements
 
-- **Node.js 20 or newer** ([nodejs.org](https://nodejs.org))
-- An Event Pipe account ([sign up](https://eventpipe.app))
-- For **`push`**: a **pipeline** already created in the app, and its **`pipelineId`** (UUID) in **`eventpipe.json`**
+- **Node.js 20+** ([nodejs.org](https://nodejs.org))
+- An Event Pipe account ([eventpipe.app](https://eventpipe.app))
+- For **`push` / `build`**: an **`eventpipe.json`** at the project root with **`pipelineId`** and **`settings.pipe`** (v3)
+- For **`listen`** / **`create` / `push`**: run **`eventpipe login`** first (except where noted)
 
 ---
 
@@ -33,22 +35,27 @@ Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundl
 npm install -g @eventpipe/cli
 ```
 
-This provides **`eventpipe`** and **`eventpipe-cli`** on your `PATH`.
+Provides the commands **`eventpipe`** and **`eventpipe-cli`** on your `PATH`.
 
-### Per project
+### As a dev dependency
 
 ```bash
 npm add -D @eventpipe/cli
+# or: pnpm add -D @eventpipe/cli
 ```
 
-Run with **`npx eventpipe …`** or npm scripts.
+Use **`npx eventpipe …`** or npm scripts.
 
-### Install scripts (from a clone of this repo)
+### Helper scripts (clone of this repo)
 
-**macOS / Linux:** `bash install/macos.sh`  
-**Windows (PowerShell):** `Set-ExecutionPolicy -Scope Process Bypass; .\install\windows.ps1`
+Checks Node 20+ and runs a global install:
 
-### Develop from source
+| OS | Command |
+|----|---------|
+| **macOS / Linux** | `bash install/macos.sh` |
+| **Windows** | `Set-ExecutionPolicy -Scope Process Bypass; .\install\windows.ps1` |
+
+### From source
 
 ```bash
 git clone <repo-url> && cd eventpipe-cli
@@ -58,17 +65,101 @@ node dist/cli.js --help
 
 ---
 
-## Publishing pipeline versions (`build` + `push`)
+## Quick start
 
-Publishing creates a **new immutable version** of your pipeline by calling **`POST /api/account/pipelines/{pipelineId}/versions`** with bundled code — the same endpoint the [web app](https://eventpipe.app) uses.
+```bash
+npm install -g @eventpipe/cli
+eventpipe login
+eventpipe create --name my-endpoint
+eventpipe listen <webhookId>
+```
 
-### 1. Get `pipelineId`
+In a folder with **`eventpipe.json`** and **`src/handler.ts`**:
 
-In **Pipe Studio**, open your pipeline and copy its **UUID** from the URL or settings.
+```bash
+eventpipe login
+eventpipe build
+eventpipe push
+```
 
-### 2. Add `eventpipe.json` (minimal single code node)
+Default app URL for **`login`** is **`https://eventpipe.app`**. For a self-hosted deployment, set **`EVENTPIPE_BASE_URL`** to your app origin (no trailing slash) **before** `login`.
 
-The **`code`** node id in **`settings.pipe`** must match the code node you bundle (default file: **`src/handler.ts`**).
+---
+
+## Commands (reference)
+
+### `eventpipe login`
+
+- Opens the **browser** to sign in with your Event Pipe account.
+- Saves session data to **`~/.eventpipe/credentials.json`** (Unix) or your user profile on Windows.
+- **Required** before **`create`**, **`listen`**, and **`push`** (unless you already logged in earlier on this machine).
+- **`EVENTPIPE_BASE_URL`**: optional; defaults to **`https://eventpipe.app`**. Use your own origin for self-hosted apps.
+
+### `eventpipe create [--name <slug>]`
+
+- Creates a **new webhook endpoint** under your account.
+- **`--name`**: requests a URL slug; if it is taken, the CLI may create the endpoint with a random id and warn you.
+- Without **`--name`**, the URL and label are generated.
+- Output includes the **webhook URL** and id — use the id with **`listen`**.
+
+### `eventpipe listen <webhookId> [options]`
+
+Streams **captured** webhooks for that endpoint through Event Pipe’s relay. You must have run **`eventpipe login`** first.
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--verbose` | `-v` | After the summary line, print the **full event** JSON (method, headers, query, body). |
+| `--json` | | One **JSON object per line** on stdout (NDJSON) — easy to pipe to **`jq`** or scripts. |
+| `--forward-to <url>` | | **HTTP replay**: send each event to your URL (e.g. local server). Status lines go to **stderr** so **`--json`** stays clean on stdout. |
+
+Examples:
+
+```bash
+eventpipe listen abc123
+eventpipe listen abc123 -v
+eventpipe listen abc123 --json | jq .
+eventpipe listen abc123 --forward-to http://127.0.0.1:3000/webhook
+```
+
+The hosted product must have a compatible **relay** configured (see your deployment’s environment docs).
+
+### `eventpipe build [--dir <path>]`
+
+- Reads **`eventpipe.json`** (from **`--dir`** or current directory).
+- Bundles each configured code entry with **esbuild** into **`.eventpipe/`**.
+- Prints **byte size**, **sha256**, and output paths.
+- **Limit:** each bundle must be ≤ **200KB** UTF-8 (same as production).
+
+### `eventpipe push [--dir <path>]`
+
+- Runs **`build`**, then **publishes a new pipeline version** via **`POST /api/account/pipelines/{pipelineId}/versions`** with **`codeBundles`** and **`settings`**.
+- **Authentication:** only your **saved session** from **`eventpipe login`** (Bearer token + refresh). There is no separate env-based auth path in the CLI.
+- **`--pipeline <uuid>`** or **`--flow <uuid>`**: override **`pipelineId`** from **`eventpipe.json`** for this run only.
+
+### `eventpipe update`
+
+Runs **`npm install -g @eventpipe/cli@latest`** (uses **`npm`** / **`npm.cmd`** on Windows).
+
+### `eventpipe --version` / `eventpipe -v`
+
+Prints the installed **package version**.
+
+### `eventpipe help` / `eventpipe --help`
+
+Prints built-in usage.
+
+---
+
+## Publishing pipeline versions (`build` + `push`) — walkthrough
+
+Publishing creates an **immutable version** of your pipeline; production uses the **current live** version when the pipeline is enabled.
+
+1. **Create the pipeline** in **Pipe Studio** and copy **`pipelineId`** (UUID) into **`eventpipe.json`**.
+2. Ensure **`settings.pipe`** matches your graph — for one code node, the node **`id`** in the pipe must match what you bundle (default file **`src/handler.ts`**).
+3. **`eventpipe login`** once on the machine.
+4. **`eventpipe push`** from the project root (or **`--dir`**).
+
+**Minimal `eventpipe.json` (single code node):**
 
 ```json
 {
@@ -85,7 +176,7 @@ The **`code`** node id in **`settings.pipe`** must match the code node you bundl
 }
 ```
 
-### 3. Handler entry (`src/handler.ts`)
+**Minimal `src/handler.ts`:**
 
 ```typescript
 type FlowEvent = {
@@ -101,79 +192,43 @@ export async function handler(event: FlowEvent, _context: FlowContext) {
 }
 ```
 
-In production, secrets are read from **`context.env`** (set in the app **Event** tab), not from `process.env` inside the bundle.
+In production, secrets are read from **`context.env`**, configured in the app **Event** tab — not from **`process.env`** inside the bundle.
 
-### 4. Sign in and push
-
-```bash
-eventpipe login
-eventpipe push
-```
-
-- **`login`** opens the browser and saves session under **`~/.eventpipe/credentials.json`**. Default app is **`https://eventpipe.app`** (override with **`EVENTPIPE_BASE_URL`** for self-hosted).
-- **`push`** runs **`build`** then uploads bundles. If **`EVENTPIPE_API_KEY`** is set, it is used **instead of** session (typical for **CI**).
-
-### CI example
-
-```bash
-export EVENTPIPE_API_KEY=evp_xxxxxxxx
-# optional for self-hosted: export EVENTPIPE_BASE_URL=https://your-app.example.com
-eventpipe push --dir ./my-flow
-```
-
-### Override pipeline id
-
-```bash
-eventpipe push --pipeline <uuid>
-# alias: --flow <uuid>
-```
-
----
-
-## Other commands (summary)
-
-| Command | Purpose |
-|---------|---------|
-| **`eventpipe login`** | Browser sign-in; stores session. |
-| **`eventpipe create [--name <slug>]`** | New webhook endpoint (requires login). |
-| **`eventpipe listen <id> [--json] [-v] [--forward-to <url>]`** | Stream webhooks from the relay. |
-| **`eventpipe build [--dir <path>]`** | Esbuild → `.eventpipe/`; prints size and hash (max **200KB** per bundle). |
-| **`eventpipe update`** | Runs **`npm install -g @eventpipe/cli@latest`**. |
-| **`eventpipe -v` / `--version`** | Print CLI version. |
-| **`eventpipe help`** | Built-in usage. |
+**Multi-file / multi-node:** use a **`codeNodes`** map in **`eventpipe.json`** (entry path → node id) when your pipe has more than one code node. See **`examples/stripe-webhook`**.
 
 ---
 
 ## Project layout
 
-| File / folder | Role |
-|---------------|------|
-| **`eventpipe.json`** | **`pipelineId`**, **`settings.pipe`** (v3), optional **`nodeId`**, **`entry`**, or **`codeNodes`** for multi-file graphs. |
-| **`src/handler.ts`** | Default entry when **`entry`** is omitted. |
+| Path | Purpose |
+|------|---------|
+| **`eventpipe.json`** | **`pipelineId`**; **`settings`** with **`pipe`** (v3); optional **`nodeId`**, **`entry`**, or **`codeNodes`**. |
+| **`src/handler.ts`** | Default entry if **`entry`** is omitted — **`export async function handler(event, context)`**. |
 | **`.eventpipe/`** | Generated bundles (from **`build`** / **`push`**). |
 
 ---
 
 ## Update hints
 
-After most commands, the CLI may check npm for a newer **`@eventpipe/cli`** and print a short message on **stderr** suggesting **`eventpipe update`**. Set **`EVENTPIPE_SKIP_UPDATE_CHECK=1`** to disable (e.g. in CI).
+After most commands, the CLI may query npm for a newer **`@eventpipe/cli`** and print a short message on **stderr** suggesting **`eventpipe update`**. Set **`EVENTPIPE_SKIP_UPDATE_CHECK=1`** to disable (e.g. in automation logs).
 
 ---
 
-## Example
+## Examples in this repo
 
-See **`examples/stripe-webhook`** for a fuller project (multi-node **`codeNodes`** example).
+- **`examples/stripe-webhook`** — multi-node **`codeNodes`**, Stripe over **`fetch`** to stay under the bundle cap.
 
 ---
 
 ## Limits
 
-- **Single-code-node** workflows are the simplest; multi-node graphs may need a **`codeNodes`** map or publishing from the [dashboard](https://eventpipe.app).
-- **200KB** UTF-8 per code-node bundle (same as the server).
+- **~200KB** per code-node bundle (UTF-8), enforced locally and on the server.
+- This CLI’s ergonomics focus on **single-code-node** or explicitly mapped **`codeNodes`**; very large graphs can also be published from the **[dashboard](https://eventpipe.app)**.
 
 ---
 
 ## Getting help
 
-- **Product:** [eventpipe.app](https://eventpipe.app) — platform docs include **CLI** and **API reference**.
-- **This repo:** `eventpipe help`
+- **Product & guides:** [eventpipe.app](https://eventpipe.app) — Documentation (Inspector, Pipe Studio, CLI, API).
+- **CLI:** `eventpipe help`
+- **Issues:** your package or source repository’s issue tracker.
