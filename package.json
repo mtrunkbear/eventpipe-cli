@@ -1,6 +1,6 @@
 {
   "name": "@eventpipe/cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Build and publish Event Pipe flow bundles (API key auth)",
   "type": "module",
   "bin": {
