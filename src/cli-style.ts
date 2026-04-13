@@ -1,12 +1,12 @@
 const RESET = "\x1b[0m";
 const DIM = "\x1b[2m";
 const BANNER_LINES = [
-  "  _______     _______ _   _ _____ ____ ___ ____  _____ ",
-  " | ____\\ \\   / / ____| \\ | |_   _|  _ \\_ _|  _ \\| ____|",
-  " |  _|  \\ \\ / /|  _| |  \\| | | | | |_) | || |_) |  _|  ",
-  " | |___  \\ V / | |___| |\\  | | | |  __/| ||  __/| |___ ",
-  " |_____|  \\_/ |_____|_| \\_| |_| |_|  |___|_|   |_____|",
-  "                                                       ",
+  "                       _         _            ",
+  "   _____   _____ _ __ | |_ _ __ (_)_ __   ___ ",
+  "  / _ \\ \\ / / _ \\ '_ \\| __| '_ \\| | '_ \\ / _ \\",
+  " |  __/\\ V /  __/ | | | |_| |_) | | |_) |  __/",
+  "  \\___| \\_/ \\___|_| |_|\\__| .__/|_| .__/ \\___|",
+  "                          |_|     |_|         ",
 ] as const;
 
 const CHEVRON_LINES = ["██╗", "██║", "██║", "██║", "██║", "   "] as const;
@@ -86,8 +86,8 @@ export function printUsage(version: string, baseUrlHint: string): void {
   printBanner(color);
 
   const title = color
-    ? `${DIM}Event Pipe CLI — build, stream, and publish.${RESET}`
-    : "Event Pipe CLI — build, stream, and publish.";
+    ? `${DIM}eventpipe CLI — build, stream, and publish.${RESET}`
+    : "eventpipe CLI — build, stream, and publish.";
   console.log(title);
   console.log("");
 
