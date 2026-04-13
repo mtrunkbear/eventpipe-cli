@@ -17,27 +17,12 @@ import {
 import { cmdUpdate } from "./cmd-update.js";
 import { cmdListen } from "./cmd-listen.js";
 import { parseListenArgv, type ListenOptions } from "./listen-args.js";
+import { defaultBaseUrlHint, printUsage } from "./cli-style.js";
 
-function usage() {
-  console.log(`eventpipe — Event Pipe CLI
-
-Environment:
-  EVENTPIPE_BASE_URL   App origin for login (default: https://eventpipe.app); override for self-hosted
-  EVENTPIPE_SKIP_UPDATE_CHECK   Set to 1 to disable the npm version hint on stderr
-
-Commands:
-  login                  Browser login (stores ~/.eventpipe/credentials.json)
-  create [--name <s>]    Create a webhook endpoint (requires login)
-  listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]
-                         Stream webhooks; --verbose prints full JSON event; --json one NDJSON line per event;
-                         --forward-to replays the request to your local server (status on stderr)
-  build [--dir <path>]   Bundle TS into .eventpipe/
-  push [--dir <path>]    build + publish (requires eventpipe login)
-  update                 npm install -g @eventpipe/cli@latest
-  help
-
-eventpipe.json must define pipelineId and settings.pipe (v3) for build/push.
-`);
+async function usage(exitCode: number): Promise<void> {
+  const version = await readInstalledCliVersion();
+  printUsage(version, defaultBaseUrlHint());
+  process.exit(exitCode);
 }
 
 async function maybeSuggestUpdate(): Promise<void> {
@@ -182,8 +167,9 @@ async function main() {
   const cmd = argv[0];
 
   if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") {
-    usage();
-    process.exit(cmd && cmd !== "help" ? 0 : 1);
+    const exitCode = cmd && cmd !== "help" ? 0 : 1;
+    await usage(exitCode);
+    return;
   }
 
   if (cmd === "-v" || cmd === "--version") {
@@ -245,8 +231,7 @@ async function main() {
     return;
   }
 
-  usage();
-  process.exit(1);
+  await usage(1);
 }
 
 main().catch((e) => {
