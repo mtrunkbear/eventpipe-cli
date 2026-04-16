@@ -201,6 +201,82 @@ export async function startMcpServer(): Promise<void> {
     },
   );
 
+  server.registerTool(
+    "list_executions",
+    {
+      title: "List recent pipeline executions",
+      description:
+        "List recent executions for a pipeline (most recent first). " +
+        "Shows status, duration, error, and webhook_request_id for each run. " +
+        "Use this to find failures or slow runs, then get_execution for full logs.",
+      inputSchema: {
+        pipelineId: z.string().uuid().describe("Pipeline UUID"),
+        limit: z.number().int().min(1).max(100).optional().default(20).describe("Max results (default 20, max 100)"),
+      },
+    },
+    async ({ pipelineId, limit }) => {
+      const { status, data } = await apiFetch(
+        cfg,
+        "GET",
+        `/api/account/pipelines/${encodeURIComponent(pipelineId)}/executions?limit=${limit}`,
+      );
+      if (status !== 200) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(data) }], isError: true };
+      }
+      return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "get_execution",
+    {
+      title: "Get execution details with logs and output",
+      description:
+        "Get full details of a single pipeline execution including logs, output, " +
+        "error message, duration, and the webhook_request_id that triggered it. " +
+        "Use after list_executions to investigate a specific failure.",
+      inputSchema: {
+        executionId: z.string().uuid().describe("Execution UUID from list_executions"),
+      },
+    },
+    async ({ executionId }) => {
+      const { status, data } = await apiFetch(
+        cfg,
+        "GET",
+        `/api/account/executions/${encodeURIComponent(executionId)}`,
+      );
+      if (status !== 200) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(data) }], isError: true };
+      }
+      return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "get_request_executions",
+    {
+      title: "Get executions for a specific webhook request",
+      description:
+        "Given a webhook request id (from the Inspector or execution details), " +
+        "list all pipeline executions that ran for that inbound request. " +
+        "Useful to trace: 'this webhook arrived → what happened?'",
+      inputSchema: {
+        requestId: z.string().uuid().describe("Webhook request UUID"),
+      },
+    },
+    async ({ requestId }) => {
+      const { status, data } = await apiFetch(
+        cfg,
+        "GET",
+        `/api/account/webhook-requests/${encodeURIComponent(requestId)}/executions`,
+      );
+      if (status !== 200) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(data) }], isError: true };
+      }
+      return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+    },
+  );
+
   server.registerResource(
     "debug-local",
     "eventpipe://guide/debug-local",

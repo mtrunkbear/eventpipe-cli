@@ -170,6 +170,9 @@ Starts the **MCP server** (stdio). You never need to run this manually — **Cur
 | `list_pipelines` | List pipelines for a given endpoint. |
 | `get_pipeline` | Pipeline details + versions + `settings.pipe`. |
 | `execute_pipeline` | Run the live version with a test payload (no publish). |
+| `list_executions` | Recent executions for a pipeline (status, duration, errors). |
+| `get_execution` | Full execution details with logs, output, and error. |
+| `get_request_executions` | All executions triggered by a specific webhook request. |
 
 **Resources:** `eventpipe://guide/debug-local` (listen + forward-to workflow), `eventpipe://guide/ids` (webhook id vs pipeline id reference).
 

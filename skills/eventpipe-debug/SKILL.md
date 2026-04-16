@@ -21,6 +21,9 @@ If the Event Pipe MCP server is active (configured via `eventpipe mcp setup`), u
 | `list_pipelines` | List pipelines attached to a webhook endpoint (pass `endpointId`). |
 | `get_pipeline` | Get pipeline details, versions, and `settings.pipe` (pass `pipelineId` UUID). |
 | `execute_pipeline` | Run the live version with a test payload — returns `result`, `logs`, `durationMs`. |
+| `list_executions` | Recent executions for a pipeline (status, duration, errors). |
+| `get_execution` | Full execution details: logs, output, error, duration. |
+| `get_request_executions` | All executions triggered by a specific inbound webhook request. |
 
 MCP resources: `eventpipe://guide/debug-local` and `eventpipe://guide/ids` for quick reference.
 
