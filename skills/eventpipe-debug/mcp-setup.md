@@ -6,11 +6,10 @@
 eventpipe mcp setup
 ```
 
-Defaults to **Cursor** (`.cursor/mcp.json` + Cursor skill). For **Claude Code** (project `.mcp.json` + `CLAUDE.md`) or **Claude Desktop** (app config), use:
+By default configures **all** clients: Cursor (`.cursor/mcp.json` + Cursor skill), Claude Code (`.mcp.json` + `CLAUDE.md`), and Claude Desktop (app config). For **Cursor only**:
 
 ```bash
-eventpipe mcp setup --client claude-code
-eventpipe mcp setup --all-clients
+eventpipe mcp setup --client cursor
 ```
 
 This automatically:

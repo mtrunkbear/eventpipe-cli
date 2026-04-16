@@ -1,6 +1,6 @@
 {
   "name": "@eventpipe/cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Build and publish Event Pipe flow bundles from the terminal (session after login)",
   "license": "Apache-2.0",
   "type": "module",

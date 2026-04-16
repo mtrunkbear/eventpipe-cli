@@ -138,12 +138,12 @@ The hosted product must have a compatible **relay** configured (see your deploym
 
 ### `eventpipe mcp setup [--dir <path>] [--client …] [--all-clients]`
 
-**One-command** MCP integration. Run once after **`login`**. By default it configures **Cursor** only; use **`--all-clients`** or repeat **`--client`** to add more editors.
+**One-command** MCP integration. Run once after **`login`**. **By default** it configures **all** supported clients (Cursor, Claude Code, Claude Desktop). Use **`--client cursor`** if you only want Cursor (no `.mcp.json`, no `CLAUDE.md`, no Desktop app config). **`--all-clients`** is equivalent to the default and remains for scripts or clarity.
 
 ```bash
 eventpipe mcp setup
+eventpipe mcp setup --client cursor
 eventpipe mcp setup --client claude-code
-eventpipe mcp setup --all-clients
 ```
 
 What it does automatically:
@@ -155,7 +155,7 @@ What it does automatically:
 
 | Client | Config file |
 |--------|-------------|
-| **`cursor`** (default) | **`<project>/.cursor/mcp.json`** — also installs the **Cursor skill** (`eventpipe-debug`) if missing. |
+| **`cursor`** | **`<project>/.cursor/mcp.json`** — also installs the **Cursor skill** (`eventpipe-debug`) if missing. |
 | **`claude-code`** | **`<project>/.mcp.json`** — project-scoped MCP for [Claude Code](https://docs.claude.com/en/docs/claude-code/settings) and similar tools; adds/updates a **CLAUDE.md** section with tool names and workflows. |
 | **`claude-desktop`** | **Claude Desktop** app config (e.g. macOS: **`~/Library/Application Support/Claude/claude_desktop_config.json`**; Windows: **`%APPDATA%\Claude\claude_desktop_config.json`**; Linux: **`~/.config/Claude/claude_desktop_config.json`**). |
 
@@ -164,8 +164,8 @@ What it does automatically:
 | Option | Description |
 |--------|-------------|
 | `--dir` / `-C` | Project directory for project-scoped files (default: cwd). |
-| `--client <id>` | One of **`cursor`**, **`claude-code`**, **`claude-desktop`**. Repeatable. |
-| `--all-clients` | Equivalent to **`--client`** for all three. |
+| `--client <id>` | One of **`cursor`**, **`claude-code`**, **`claude-desktop`**. Repeatable; if omitted, **all three** are configured. |
+| `--all-clients` | Same as default (all three); kept for explicit use in scripts. |
 
 After setup, **restart** the relevant app (Cursor, Claude Desktop) or reload the project (Claude Code). Ask the agent: *"list my pipelines"*.
 

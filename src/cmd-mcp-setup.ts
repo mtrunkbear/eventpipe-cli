@@ -108,7 +108,7 @@ function parseClients(argv: string[]): { projectDir: string; clients: Set<McpCli
     for (const c of MCP_CLIENT_IDS) clients.add(c);
   }
   if (clients.size === 0) {
-    clients.add("cursor");
+    for (const c of MCP_CLIENT_IDS) clients.add(c);
   }
 
   return { projectDir, clients };

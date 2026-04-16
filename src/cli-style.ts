@@ -139,8 +139,8 @@ export function printUsage(version: string, baseUrlHint: string): void {
     {
       name: "mcp setup [--dir <path>] [--client …] [--all-clients]",
       desc: [
-        "MCP config: API key → ~/.eventpipe/mcp.json; --client cursor (default),",
-        "claude-code (.mcp.json + CLAUDE.md), claude-desktop (app config); --all-clients.",
+        "MCP config: API key → ~/.eventpipe/mcp.json; default = all clients (Cursor,",
+        "Claude Code, Claude Desktop). Use --client cursor for Cursor-only.",
       ],
     },
     {
