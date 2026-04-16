@@ -16,6 +16,7 @@ import {
 } from "./cli-version.js";
 import { cmdUpdate } from "./cmd-update.js";
 import { cmdListen } from "./cmd-listen.js";
+import { cmdInstallCursorSkill } from "./cmd-install-cursor-skill.js";
 import { parseListenArgv, type ListenOptions } from "./listen-args.js";
 import { defaultBaseUrlHint, printUsage } from "./cli-style.js";
 
@@ -192,6 +193,12 @@ async function main() {
 
   if (cmd === "update") {
     await cmdUpdate();
+    return;
+  }
+
+  if (cmd === "install-cursor-skill") {
+    await cmdInstallCursorSkill(argv.slice(1));
+    void maybeSuggestUpdate();
     return;
   }
 

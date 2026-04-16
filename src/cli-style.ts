@@ -97,11 +97,15 @@ export function printUsage(version: string, baseUrlHint: string): void {
     ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen <webhookId>${RESET} to stream webhooks locally.`
     : "2. Use eventpipe listen <webhookId> to stream webhooks locally.";
   const t3 = color
-    ? `${DIM}3.${RESET} ${ACCENT}eventpipe help${RESET} for all commands and flags.`
-    : "3. eventpipe help for all commands and flags.";
+    ? `${DIM}3.${RESET} ${ACCENT}eventpipe install-cursor-skill${RESET} for Cursor agent skill (debug workflows).`
+    : "3. eventpipe install-cursor-skill for Cursor agent skill (debug workflows).";
+  const t4 = color
+    ? `${DIM}4.${RESET} ${ACCENT}eventpipe help${RESET} for all commands and flags.`
+    : "4. eventpipe help for all commands and flags.";
   console.log(`  ${t1}`);
   console.log(`  ${t2}`);
   console.log(`  ${t3}`);
+  console.log(`  ${t4}`);
   console.log("");
 
   console.log(color ? `${DIM}Environment:${RESET}` : "Environment:");
@@ -132,6 +136,12 @@ export function printUsage(version: string, baseUrlHint: string): void {
     { name: "build [--dir <path>]", desc: ["Bundle TS into .eventpipe/"] },
     { name: "push [--dir <path>]", desc: ["build + publish (requires eventpipe login)"] },
     { name: "update", desc: ["npm install -g @eventpipe/cli@latest"] },
+    {
+      name: "install-cursor-skill [--global] [--force] [--dir <path>]",
+      desc: [
+        "Copy bundled Cursor skill (eventpipe-debug) to .cursor/skills or ~/.cursor/skills",
+      ],
+    },
     { name: "help", desc: [] },
   ];
   const cmdW = Math.max(...cmds.map((c) => c.name.length));

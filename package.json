@@ -12,6 +12,7 @@
     "dist",
     "examples",
     "install",
+    "skills",
     "LICENSE"
   ],
   "scripts": {

@@ -14,7 +14,7 @@ Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundl
 | **Webhooks** | Create endpoints (`create`), listen to the relay in real time (`listen`), optionally **replay** requests to a local URL (`--forward-to`). |
 | **Bundles** | Compile TypeScript handlers to `.eventpipe/` (`build`) with size and sha256 output. |
 | **Deploy** | Publish a **new pipeline version** (`push`) using your saved session after `login` — same server route as Pipe Studio. |
-| **Tooling** | Print version (`--version`), upgrade the CLI (`update`), and optional npm “newer version” hints on stderr. |
+| **Tooling** | Print version (`--version`), upgrade the CLI (`update`), optional npm “newer version” hints on stderr, and **`install-cursor-skill`** to copy the bundled **Cursor** agent skill (`eventpipe-debug`). |
 
 ---
 
@@ -135,6 +135,22 @@ The hosted product must have a compatible **relay** configured (see your deploym
 - Runs **`build`**, then **publishes a new pipeline version** via **`POST /api/account/pipelines/{pipelineId}/versions`** with **`codeBundles`** and **`settings`**.
 - **Authentication:** only your **saved session** from **`eventpipe login`** (Bearer token + refresh). There is no separate env-based auth path in the CLI.
 - **`--pipeline <uuid>`** or **`--flow <uuid>`**: override **`pipelineId`** from **`eventpipe.json`** for this run only.
+
+### `eventpipe install-cursor-skill [options]`
+
+Installs the bundled **Cursor** skill **`eventpipe-debug`** (CLI + API + MCP-oriented workflows) so agents know how to use **`listen`**, **`--forward-to`**, **`execute`**, and related tooling.
+
+| Option | Description |
+|--------|-------------|
+| *(default)* | Copy to **`<cwd>/.cursor/skills/eventpipe-debug`** (commit this path to share with your team). |
+| `--global` / `-g` | Copy to **`~/.cursor/skills/eventpipe-debug`** (all projects on this machine). |
+| `--force` / `-f` | Overwrite if the folder already exists. |
+| `--dir` / `-C` | Base directory for project install (default: current working directory). |
+
+```bash
+eventpipe install-cursor-skill
+eventpipe install-cursor-skill --global
+```
 
 ### `eventpipe update`
 
