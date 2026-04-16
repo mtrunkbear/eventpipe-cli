@@ -109,7 +109,7 @@ export async function startMcpServer(): Promise<void> {
       title: "List webhook endpoints",
       description:
         "List all webhook endpoints owned by the authenticated account. " +
-        "Returns endpoint id (webhookId), label, privacy, and creation date.",
+        "Returns endpoint id (webhookId), label, inspectorPrivate, requireCaptureKey, and creation date.",
       inputSchema: {},
     },
     async () => {
