@@ -1,6 +1,6 @@
 ---
 name: eventpipe-debug
-description: Debugs Event Pipe webhooks and pipelines using the official CLI (listen, forward-to, build, push), the dashboard HTTP API (execute, versions), and optional Event Pipe MCP tools. Use when the user works with eventpipe, webhook capture, Pipe Studio, pipelines, handler bundles, or asks to debug or trace webhook traffic locally.
+description: Debugs Event Pipe webhooks and pipelines using the official CLI (listen, forward-to, build, push), the dashboard HTTP API (execute, versions), and the built-in MCP server (list_endpoints, list_pipelines, get_pipeline, execute_pipeline). Use when the user works with eventpipe, webhook capture, Pipe Studio, pipelines, handler bundles, or asks to debug or trace webhook traffic locally.
 ---
 
 # Event Pipe — debug and tooling
@@ -10,6 +10,19 @@ description: Debugs Event Pipe webhooks and pipelines using the official CLI (li
 - **Webhook endpoint id** (`webhookId`): public capture URL segment; used with `eventpipe listen <webhookId>` and the Inspector.
 - **Pipeline id** (`pipelineId`): UUID for Pipe Studio / `eventpipe.json`; **not** the same as `webhookId`. Publishing uses the pipeline id.
 - Traffic hits the **cloud** first; `listen` streams events to the CLI via the relay. **`--forward-to`** replays each captured request to a local URL (your dev server).
+
+## MCP tools (preferred when available)
+
+If the Event Pipe MCP server is active (configured via `eventpipe mcp setup`), use these tools:
+
+| Tool | Purpose |
+|------|---------|
+| `list_endpoints` | List all webhook endpoints for the account. |
+| `list_pipelines` | List pipelines attached to a webhook endpoint (pass `endpointId`). |
+| `get_pipeline` | Get pipeline details, versions, and `settings.pipe` (pass `pipelineId` UUID). |
+| `execute_pipeline` | Run the live version with a test payload — returns `result`, `logs`, `durationMs`. |
+
+MCP resources: `eventpipe://guide/debug-local` and `eventpipe://guide/ids` for quick reference.
 
 ## CLI (after `eventpipe login`)
 
@@ -21,31 +34,21 @@ description: Debugs Event Pipe webhooks and pipelines using the official CLI (li
 | `eventpipe push` | Build and publish a new pipeline version (same route as Pipe Studio). |
 | `eventpipe create` | Create a webhook endpoint (interactive / flags per CLI help). |
 
-Prefer **`listen` + `--forward-to`** to debug **local** handlers without exposing localhost to Stripe. Use **`build` / `push`** when the handler code or `settings.pipe` changed.
+Prefer **`listen` + `--forward-to`** to debug **local** handlers without exposing localhost to the provider.
 
-## HTTP API (debug without publishing)
+## HTTP API (fallback if MCP is not available)
 
-Authenticated with **`x-api-key`** or **`Authorization: Bearer <api key>`** (see app **Documentation → API**). Base URL: app origin (default `https://eventpipe.app`, or `EVENTPIPE_BASE_URL`).
+Authenticated with **`x-api-key`** or **`Authorization: Bearer <api key>`**. Base URL: app origin (default `https://eventpipe.app`).
 
 | Need | Method | Path |
 |------|--------|------|
-| Run **live** current version with a synthetic payload | `POST` | `/api/account/pipelines/{pipelineId}/execute` |
-| Read pipeline + **versions** (incl. `settings.pipe`) | `GET` | `/api/account/pipelines/{pipelineId}` |
+| Run live version with a synthetic payload | `POST` | `/api/account/pipelines/{pipelineId}/execute` |
+| Read pipeline + versions | `GET` | `/api/account/pipelines/{pipelineId}` |
 | List pipelines for an endpoint | `GET` | `/api/account/pipelines?endpointId={webhookEndpointId}` |
-
-Use **execute** to reproduce failures with a controlled body; correlate with **listen** for real provider traffic.
-
-## Optional: Event Pipe MCP
-
-If the user has configured an **Event Pipe MCP** server in Cursor, prefer its tools to **list pipelines**, **get pipeline + versions**, and **execute** — same capabilities as the API with less manual `curl`.
-
-Environment for MCP (typical): `EVENTPIPE_BASE_URL`, `EVENTPIPE_API_KEY`.
-
-Install this skill from the CLI: `eventpipe install-cursor-skill` (project) or `eventpipe install-cursor-skill --global`. See [mcp-setup.md](mcp-setup.md) for an example MCP server entry once `@eventpipe/mcp` (or your server) is available.
 
 ## Agent checklist
 
 1. Confirm whether the issue is **capture** (endpoint id), **pipeline code** (pipeline id + publish), or **local replay** (forward-to).
 2. For local replay: suggest `eventpipe listen <webhookId> --forward-to <url>` and ensure `login` was run.
-3. For isolated runs: suggest `POST .../execute` with a minimal JSON body matching the provider shape.
+3. For isolated runs: use `execute_pipeline` tool (or `POST .../execute`) with a minimal JSON body matching the provider shape.
 4. Never confuse **webhook id** and **pipeline id** when reading `eventpipe.json` or API paths.

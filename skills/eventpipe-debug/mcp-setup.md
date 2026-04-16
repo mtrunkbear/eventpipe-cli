@@ -1,23 +1,29 @@
-# Event Pipe MCP — Cursor setup
+# Event Pipe MCP — setup
 
-When an official **`@eventpipe/mcp`** package (or your own server) exists, add it to Cursor MCP settings so agents can call tools instead of hand-written `curl`.
+## One-command setup
 
-## Environment
+```bash
+eventpipe mcp setup
+```
+
+This automatically:
+1. Logs you in (if needed).
+2. Creates an API key for MCP (`evp_…`).
+3. Saves it to `~/.eventpipe/mcp.json` (chmod 600).
+4. Writes `.cursor/mcp.json` with the MCP server entry.
+5. Installs the Cursor skill (`eventpipe-debug`).
+
+After running, restart Cursor. The MCP server (`eventpipe mcp-serve`) is spawned automatically by Cursor.
+
+## Environment (alternative to setup)
+
+If you prefer manual config, set these in the MCP server entry:
 
 | Variable | Purpose |
 |----------|---------|
-| `EVENTPIPE_BASE_URL` | App origin (e.g. `https://eventpipe.app`). |
-| `EVENTPIPE_API_KEY` | Account API key from the dashboard. |
+| `EVENTPIPE_BASE_URL` | App origin (default `https://eventpipe.app`). |
+| `EVENTPIPE_API_KEY` | Account API key from Account → API keys. |
 
-## Example (conceptual)
+## Revoking access
 
-Point **`command`** at your MCP server entry (Node binary or `npx -y @eventpipe/mcp`). Pass the env vars above in the MCP server block so tools can reach `/api/account/pipelines/...`.
-
-Exact file location depends on Cursor version (user-level MCP config vs project). Use **Cursor Settings → MCP** when available, or merge the server definition into your existing MCP JSON.
-
-## Relation to this skill
-
-- **Skill** (`eventpipe-debug`): teaches workflows (CLI + API + when to use MCP).
-- **MCP server**: exposes concrete tools (`get_pipeline`, `execute_pipeline`, etc.) with structured results.
-
-Use both: the skill for behavior; MCP for actions.
+Delete or revoke the key from **Account → API keys** in the dashboard. Remove `~/.eventpipe/mcp.json` and the `eventpipe` entry from `.cursor/mcp.json`.

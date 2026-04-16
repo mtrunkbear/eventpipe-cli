@@ -136,9 +136,46 @@ The hosted product must have a compatible **relay** configured (see your deploym
 - **Authentication:** only your **saved session** from **`eventpipe login`** (Bearer token + refresh). There is no separate env-based auth path in the CLI.
 - **`--pipeline <uuid>`** or **`--flow <uuid>`**: override **`pipelineId`** from **`eventpipe.json`** for this run only.
 
+### `eventpipe mcp setup [--dir <path>]`
+
+**One-command** MCP integration for Cursor. Run once after **`login`**:
+
+```bash
+eventpipe mcp setup
+```
+
+What it does automatically:
+
+1. Ensures you are logged in (triggers **`login`** if needed).
+2. Creates an **API key** (`evp_…`) via **`POST /api/account/api-keys`** — no manual copy-paste.
+3. Saves the key to **`~/.eventpipe/mcp.json`** (chmod 600, outside any repo).
+4. Writes **`.cursor/mcp.json`** in the project with the MCP server entry.
+5. Installs the **Cursor skill** (`eventpipe-debug`) if not already present.
+
+After setup, **restart Cursor** and ask the agent: *"list my pipelines"*.
+
+| Option | Description |
+|--------|-------------|
+| `--dir` / `-C` | Project directory for `.cursor/mcp.json` and skill (default: cwd). |
+
+### `eventpipe mcp serve`
+
+Starts the **MCP server** (stdio). You never need to run this manually — **Cursor spawns it automatically** after **`mcp setup`**.
+
+**Tools** exposed to agents:
+
+| Tool | What it does |
+|------|-------------|
+| `list_endpoints` | List webhook endpoints for your account. |
+| `list_pipelines` | List pipelines for a given endpoint. |
+| `get_pipeline` | Pipeline details + versions + `settings.pipe`. |
+| `execute_pipeline` | Run the live version with a test payload (no publish). |
+
+**Resources:** `eventpipe://guide/debug-local` (listen + forward-to workflow), `eventpipe://guide/ids` (webhook id vs pipeline id reference).
+
 ### `eventpipe install-cursor-skill [options]`
 
-Installs the bundled **Cursor** skill **`eventpipe-debug`** (CLI + API + MCP-oriented workflows) so agents know how to use **`listen`**, **`--forward-to`**, **`execute`**, and related tooling.
+Installs the bundled **Cursor** skill **`eventpipe-debug`** (CLI + API + MCP-oriented workflows) so agents know how to use **`listen`**, **`--forward-to`**, **`execute`**, and related tooling. **Note:** **`mcp setup`** already includes this step.
 
 | Option | Description |
 |--------|-------------|

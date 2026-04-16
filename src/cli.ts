@@ -17,6 +17,7 @@ import {
 import { cmdUpdate } from "./cmd-update.js";
 import { cmdListen } from "./cmd-listen.js";
 import { cmdInstallCursorSkill } from "./cmd-install-cursor-skill.js";
+import { cmdMcpSetup } from "./cmd-mcp-setup.js";
 import { parseListenArgv, type ListenOptions } from "./listen-args.js";
 import { defaultBaseUrlHint, printUsage } from "./cli-style.js";
 
@@ -200,6 +201,28 @@ async function main() {
     await cmdInstallCursorSkill(argv.slice(1));
     void maybeSuggestUpdate();
     return;
+  }
+
+  if (cmd === "mcp-serve") {
+    const { startMcpServer } = await import("./mcp-serve.js");
+    await startMcpServer();
+    return;
+  }
+
+  if (cmd === "mcp") {
+    const sub = argv[1];
+    if (sub === "setup") {
+      await cmdMcpSetup(argv.slice(2));
+      void maybeSuggestUpdate();
+      return;
+    }
+    if (sub === "serve") {
+      const { startMcpServer } = await import("./mcp-serve.js");
+      await startMcpServer();
+      return;
+    }
+    console.error("Usage: eventpipe mcp <setup|serve>");
+    process.exit(1);
   }
 
   if (cmd === "listen") {
