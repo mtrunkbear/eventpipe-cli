@@ -136,31 +136,42 @@ The hosted product must have a compatible **relay** configured (see your deploym
 - **Authentication:** only your **saved session** from **`eventpipe login`** (Bearer token + refresh). There is no separate env-based auth path in the CLI.
 - **`--pipeline <uuid>`** or **`--flow <uuid>`**: override **`pipelineId`** from **`eventpipe.json`** for this run only.
 
-### `eventpipe mcp setup [--dir <path>]`
+### `eventpipe mcp setup [--dir <path>] [--client …] [--all-clients]`
 
-**One-command** MCP integration for Cursor. Run once after **`login`**:
+**One-command** MCP integration. Run once after **`login`**. By default it configures **Cursor** only; use **`--all-clients`** or repeat **`--client`** to add more editors.
 
 ```bash
 eventpipe mcp setup
+eventpipe mcp setup --client claude-code
+eventpipe mcp setup --all-clients
 ```
 
 What it does automatically:
 
 1. Ensures you are logged in (triggers **`login`** if needed).
-2. Creates an **API key** (`evp_…`) via **`POST /api/account/api-keys`** — no manual copy-paste.
+2. Creates an **API key** (`evp_…`) via **`POST /api/account/api-keys`** — no manual copy-paste (labeled **eventpipe MCP (auto)** in the dashboard).
 3. Saves the key to **`~/.eventpipe/mcp.json`** (chmod 600, outside any repo).
-4. Writes **`.cursor/mcp.json`** in the project with the MCP server entry.
-5. Installs the **Cursor skill** (`eventpipe-debug`) if not already present.
+4. For each selected **client**, merges the same MCP server entry (`eventpipe` → `eventpipe mcp-serve`):
 
-After setup, **restart Cursor** and ask the agent: *"list my pipelines"*.
+| Client | Config file |
+|--------|-------------|
+| **`cursor`** (default) | **`<project>/.cursor/mcp.json`** — also installs the **Cursor skill** (`eventpipe-debug`) if missing. |
+| **`claude-code`** | **`<project>/.mcp.json`** — project-scoped MCP for [Claude Code](https://docs.claude.com/en/docs/claude-code/settings) and similar tools; adds/updates a **CLAUDE.md** section with tool names and workflows. |
+| **`claude-desktop`** | **Claude Desktop** app config (e.g. macOS: **`~/Library/Application Support/Claude/claude_desktop_config.json`**; Windows: **`%APPDATA%\Claude\claude_desktop_config.json`**; Linux: **`~/.config/Claude/claude_desktop_config.json`**). |
+
+**Requirements:** **`eventpipe`** must be on your **`PATH`** so the client can spawn **`eventpipe mcp-serve`** (same as Cursor).
 
 | Option | Description |
 |--------|-------------|
-| `--dir` / `-C` | Project directory for `.cursor/mcp.json` and skill (default: cwd). |
+| `--dir` / `-C` | Project directory for project-scoped files (default: cwd). |
+| `--client <id>` | One of **`cursor`**, **`claude-code`**, **`claude-desktop`**. Repeatable. |
+| `--all-clients` | Equivalent to **`--client`** for all three. |
+
+After setup, **restart** the relevant app (Cursor, Claude Desktop) or reload the project (Claude Code). Ask the agent: *"list my pipelines"*.
 
 ### `eventpipe mcp serve`
 
-Starts the **MCP server** (stdio). You never need to run this manually — **Cursor spawns it automatically** after **`mcp setup`**.
+Starts the **MCP server** (stdio). You normally do not run this manually — the **MCP client** spawns it after **`mcp setup`**.
 
 **Tools** exposed to agents:
 

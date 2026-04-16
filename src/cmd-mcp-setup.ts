@@ -1,10 +1,18 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadCredentials } from "./credentials.js";
 import { fetchWithSession } from "./auth-fetch.js";
 import { cmdLogin } from "./cmd-login.js";
 import { cmdInstallCursorSkill } from "./cmd-install-cursor-skill.js";
+import {
+  type McpClientId,
+  MCP_CLIENT_IDS,
+  claudeDesktopConfigPath,
+  mcpServerEntry,
+  mergeMcpServersJson,
+  upsertClaudeMdSection,
+} from "./mcp-client-config.js";
 
 type McpKeyFile = { apiKey: string; baseUrl: string };
 
@@ -31,7 +39,7 @@ async function createApiKey(cred: Awaited<ReturnType<typeof loadCredentials>>) {
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ label: "Cursor MCP (auto)" }),
+      body: JSON.stringify({ label: "eventpipe MCP (auto)" }),
     },
     cred,
   );
@@ -61,32 +69,6 @@ async function saveMcpKey(cfg: McpKeyFile): Promise<void> {
   }
 }
 
-async function writeCursorMcpConfig(projectDir: string): Promise<string> {
-  const cursorDir = join(projectDir, ".cursor");
-  const configPath = join(cursorDir, "mcp.json");
-
-  const entry = {
-    command: "eventpipe",
-    args: ["mcp-serve"],
-  };
-
-  let existing: Record<string, unknown> = {};
-  try {
-    const raw = await readFile(configPath, "utf8");
-    existing = JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    /* file doesn't exist yet */
-  }
-
-  const servers = (existing.mcpServers ?? {}) as Record<string, unknown>;
-  servers["eventpipe"] = entry;
-  existing.mcpServers = servers;
-
-  await mkdir(cursorDir, { recursive: true });
-  await writeFile(configPath, JSON.stringify(existing, null, 2) + "\n", "utf8");
-  return configPath;
-}
-
 async function skillAlreadyInstalled(projectDir: string): Promise<boolean> {
   try {
     await stat(join(projectDir, ".cursor", "skills", "eventpipe-debug", "SKILL.md"));
@@ -96,15 +78,48 @@ async function skillAlreadyInstalled(projectDir: string): Promise<boolean> {
   }
 }
 
-export async function cmdMcpSetup(argv: string[]): Promise<void> {
+function parseClients(argv: string[]): { projectDir: string; clients: Set<McpClientId> } {
   let projectDir = process.cwd();
+  const clients = new Set<McpClientId>();
+  let allClients = false;
+
   for (let i = 0; i < argv.length; i++) {
-    if ((argv[i] === "--dir" || argv[i] === "-C") && argv[i + 1]) {
+    const a = argv[i];
+    if ((a === "--dir" || a === "-C") && argv[i + 1]) {
       projectDir = resolve(argv[++i]!.trim());
+      continue;
+    }
+    if (a === "--all-clients") {
+      allClients = true;
+      continue;
+    }
+    if (a === "--client" && argv[i + 1]) {
+      const id = argv[++i]!.trim() as McpClientId;
+      if (!MCP_CLIENT_IDS.includes(id)) {
+        throw new Error(
+          `Unknown --client "${id}". Use: ${MCP_CLIENT_IDS.join(", ")}`,
+        );
+      }
+      clients.add(id);
     }
   }
 
+  if (allClients) {
+    for (const c of MCP_CLIENT_IDS) clients.add(c);
+  }
+  if (clients.size === 0) {
+    clients.add("cursor");
+  }
+
+  return { projectDir, clients };
+}
+
+export async function cmdMcpSetup(argv: string[]): Promise<void> {
+  const { projectDir, clients } = parseClients(argv);
+  const entry = mcpServerEntry();
+
   console.log("── eventpipe MCP setup ──\n");
+  console.log(`Clients: ${[...clients].join(", ")}\n`);
 
   const cred = await ensureLogin();
 
@@ -113,10 +128,35 @@ export async function cmdMcpSetup(argv: string[]): Promise<void> {
   await saveMcpKey(mcpCfg);
   console.log(`API key saved to ${MCP_KEY_PATH()} (chmod 600)\n`);
 
-  const configPath = await writeCursorMcpConfig(projectDir);
-  console.log(`Cursor MCP config written to ${configPath}\n`);
+  if (clients.has("cursor")) {
+    const configPath = join(projectDir, ".cursor", "mcp.json");
+    await mergeMcpServersJson(configPath, "eventpipe", entry);
+    console.log(`Cursor MCP config written to ${configPath}`);
+  }
 
-  if (!(await skillAlreadyInstalled(projectDir))) {
+  if (clients.has("claude-code")) {
+    const configPath = join(projectDir, ".mcp.json");
+    await mergeMcpServersJson(configPath, "eventpipe", entry);
+    console.log(`Claude Code / project MCP config written to ${configPath}`);
+    const claudePath = await upsertClaudeMdSection(projectDir);
+    console.log(`CLAUDE.md updated with Event Pipe hints: ${claudePath}`);
+  }
+
+  if (clients.has("claude-desktop")) {
+    const desktopPath = claudeDesktopConfigPath();
+    if (!desktopPath) {
+      console.warn(
+        "Skipping Claude Desktop: could not resolve config path (set APPDATA on Windows).",
+      );
+    } else {
+      await mergeMcpServersJson(desktopPath, "eventpipe", entry);
+      console.log(`Claude Desktop MCP config merged into ${desktopPath}`);
+    }
+  }
+
+  console.log("");
+
+  if (clients.has("cursor") && !(await skillAlreadyInstalled(projectDir))) {
     console.log("Installing Cursor skill (eventpipe-debug)…");
     await cmdInstallCursorSkill(["--dir", projectDir, "--force"]);
     console.log("");
@@ -124,8 +164,18 @@ export async function cmdMcpSetup(argv: string[]): Promise<void> {
 
   console.log("── Setup complete ──\n");
   console.log("Next steps:");
-  console.log("  1. Restart Cursor (or reload window).");
-  console.log("  2. In chat, ask: \"list my pipelines\" to verify.\n");
+  if (clients.has("cursor")) {
+    console.log("  • Cursor: restart Cursor (or reload window).");
+  }
+  if (clients.has("claude-code")) {
+    console.log(
+      "  • Claude Code: ensure `eventpipe` is on your PATH; open this project and use /mcp if needed.",
+    );
+  }
+  if (clients.has("claude-desktop")) {
+    console.log("  • Claude Desktop: fully quit and reopen the app.");
+  }
+  console.log('  • In chat, try: "list my pipelines" (or use MCP tools from the tool menu).\n');
   console.log(`API key prefix: ${mcpCfg.apiKey.slice(0, 14)}…`);
   console.log("Revoke anytime from Account → API keys in the dashboard.");
 }

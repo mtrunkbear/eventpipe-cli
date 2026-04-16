@@ -97,8 +97,8 @@ export function printUsage(version: string, baseUrlHint: string): void {
     ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen <webhookId>${RESET} to stream webhooks locally.`
     : "2. Use eventpipe listen <webhookId> to stream webhooks locally.";
   const t3 = color
-    ? `${DIM}3.${RESET} ${ACCENT}eventpipe mcp setup${RESET} to enable Cursor MCP (debug with AI).`
-    : "3. eventpipe mcp setup to enable Cursor MCP (debug with AI).";
+    ? `${DIM}3.${RESET} ${ACCENT}eventpipe mcp setup${RESET} for Cursor, Claude Code, or Claude Desktop (debug with AI).`
+    : "3. eventpipe mcp setup for Cursor, Claude Code, or Claude Desktop (debug with AI).";
   const t4 = color
     ? `${DIM}4.${RESET} ${ACCENT}eventpipe help${RESET} for all commands and flags.`
     : "4. eventpipe help for all commands and flags.";
@@ -137,16 +137,16 @@ export function printUsage(version: string, baseUrlHint: string): void {
     { name: "push [--dir <path>]", desc: ["build + publish (requires eventpipe login)"] },
     { name: "update", desc: ["npm install -g @eventpipe/cli@latest"] },
     {
-      name: "mcp setup [--dir <path>]",
+      name: "mcp setup [--dir <path>] [--client …] [--all-clients]",
       desc: [
-        "One-command MCP config: creates API key, saves to ~/.eventpipe/mcp.json,",
-        "writes .cursor/mcp.json, and installs the Cursor skill — all automatic.",
+        "MCP config: API key → ~/.eventpipe/mcp.json; --client cursor (default),",
+        "claude-code (.mcp.json + CLAUDE.md), claude-desktop (app config); --all-clients.",
       ],
     },
     {
       name: "mcp serve",
       desc: [
-        "Start MCP server (stdio). Cursor runs this automatically after mcp setup.",
+        "Start MCP server (stdio). Your editor spawns this after mcp setup.",
       ],
     },
     {
