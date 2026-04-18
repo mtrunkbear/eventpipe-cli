@@ -10,15 +10,12 @@ import {
   saveGuestListenSession,
 } from "./guest-listen-session.js";
 import { createEndpoint } from "./cmd-create.js";
-import { printGuestListenEnd, printGuestListenIntro, printGuestListenMilestone } from "./cli-style.js";
+import { printGuestListenEnd, printGuestListenIntro, printGuestListenMilestone, printWebhookEvent } from "./cli-style.js";
 import { promptGuestListenInteractive, promptListenInteractive } from "./listen-interactive.js";
 
 const GUEST_DEFAULT_MAX_EVENTS = 25;
 const GUEST_DEFAULT_SESSION_MIN = 15;
 
-function formatKb(bytes: number): string {
-  return (bytes / 1024).toFixed(1);
-}
 
 type GuestStreamOpts = {
   maxEvents: number;
@@ -96,7 +93,7 @@ async function connectRelayAndStream(
           if (options.json) {
             console.log(JSON.stringify({ summary, bytes, event }));
           } else {
-            console.log(`\u{1F4E9} ${summary} (${formatKb(bytes)}KB)`);
+            printWebhookEvent({ bytes, event });
             if (options.verbose) {
               console.log(JSON.stringify(event, null, 2));
             }

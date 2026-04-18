@@ -1,5 +1,6 @@
 const RESET = "\x1b[0m";
 const DIM = "\x1b[2m";
+const BOLD = "\x1b[1m";
 const BANNER_LINES = [
   "                       _         _            ",
   "   _____   _____ _ __ | |_ _ __ (_)_ __   ___ ",
@@ -238,6 +239,130 @@ export function printGuestListenMilestone(current: number, max: number, color: b
         ? ` ${dim}[${current}/${max}]${reset}`
         : ` [${current}/${max}]`;
   process.stderr.write(`${suffix}\n`);
+}
+
+type FlowEventWirePartial = {
+  method?: string;
+  headers?: Record<string, string>;
+  query?: Record<string, string>;
+  body?: unknown;
+  path?: string;
+  receivedAt?: number;
+};
+
+function methodColor(method: string, color: boolean): string {
+  if (!color) {
+    return method.toUpperCase().padEnd(7);
+  }
+  const m = method.toUpperCase();
+  const padded = m.padEnd(7);
+  const c: Record<string, string> = {
+    GET: rgbFg(99, 202, 183),
+    POST: rgbFg(134, 239, 172),
+    PUT: rgbFg(253, 224, 71),
+    PATCH: rgbFg(253, 224, 71),
+    DELETE: rgbFg(248, 113, 113),
+    HEAD: rgbFg(167, 139, 250),
+    OPTIONS: rgbFg(167, 139, 250),
+  };
+  return `${c[m] ?? rgbFg(200, 200, 200)}${BOLD}${padded}${RESET}`;
+}
+
+function resolveOrigin(headers: Record<string, string>): string {
+  const raw =
+    headers["origin"] ??
+    headers["referer"] ??
+    headers["x-forwarded-for"] ??
+    headers["x-real-ip"] ??
+    "";
+  if (!raw) {
+    return "";
+  }
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return raw.split(",")[0]?.trim().split("/")[0]?.trim() ?? raw;
+  }
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? `${s.slice(0, max)}\u2026` : s;
+}
+
+function formatQuery(query: Record<string, string>): string {
+  const pairs = Object.entries(query)
+    .map(([k, v]) => `${k}=${v}`)
+    .join("  ");
+  return truncate(pairs, 80);
+}
+
+function formatBody(body: unknown): string {
+  if (body === null || body === undefined) {
+    return "";
+  }
+  const raw = typeof body === "string" ? body : JSON.stringify(body);
+  return truncate(raw, 120);
+}
+
+function formatKbFromBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes}B`;
+  }
+  return `${(bytes / 1024).toFixed(1)}KB`;
+}
+
+function formatTime(ts?: number): string {
+  const d = ts ? new Date(ts) : new Date();
+  return d.toTimeString().slice(0, 8);
+}
+
+export function printWebhookEvent(params: {
+  bytes: number;
+  event: FlowEventWirePartial;
+  color?: boolean;
+}): void {
+  const color = params.color ?? useColor();
+  const { bytes, event } = params;
+
+  const method = (event.method ?? "POST").toUpperCase();
+  const headers = event.headers ?? {};
+  const query = event.query ?? {};
+  const body = event.body;
+  const origin = resolveOrigin(headers);
+  const time = formatTime(event.receivedAt);
+  const size = formatKbFromBytes(bytes);
+
+  const dim = color ? DIM : "";
+  const reset = color ? RESET : "";
+  const accent = color ? ACCENT : "";
+
+  const labelW = 8;
+  const label = (s: string) =>
+    color ? `  ${dim}${s.padEnd(labelW)}${reset}` : `  ${s.padEnd(labelW)}`;
+
+  const methodStr = methodColor(method, color);
+  const originStr = origin ? (color ? `${dim}${origin}${reset}` : origin) : "";
+  const timeStr = color ? `${dim}${time}${reset}` : time;
+  const sizeStr = color ? `${dim}${size}${reset}` : size;
+
+  const headerParts = [methodStr, originStr, sizeStr, timeStr].filter(Boolean);
+  console.log(`\u{1F4E9} ${headerParts.join(color ? `  ${dim}\u00B7${reset}  ` : "  ·  ")}`);
+
+  const hasQuery = Object.keys(query).length > 0;
+  const hasBody = body !== null && body !== undefined && method !== "GET" && method !== "HEAD";
+
+  if (hasQuery) {
+    const val = color ? `${accent}${formatQuery(query)}${reset}` : formatQuery(query);
+    console.log(`${label("params")}${val}`);
+  }
+
+  if (hasBody) {
+    const bodyStr = formatBody(body);
+    if (bodyStr) {
+      const val = color ? `${dim}${bodyStr}${reset}` : bodyStr;
+      console.log(`${label("body")}${val}`);
+    }
+  }
 }
 
 export function printGuestListenEnd(reason: "events" | "time", color: boolean = useColor()): void {
