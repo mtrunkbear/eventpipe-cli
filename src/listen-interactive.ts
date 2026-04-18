@@ -4,8 +4,60 @@ import type { ListenOptions } from "./listen-args.js";
 
 const DEFAULT_FORWARD_URL = "http://127.0.0.1:3000/api/webhooks";
 
+const PLACEHOLDER_FIRST = [
+  "monkey",
+  "cosmic",
+  "turbo",
+  "neon",
+  "fuzzy",
+  "lazy",
+  "wild",
+  "tiny",
+  "cyber",
+  "quantum",
+  "jolly",
+  "stealth",
+  "hyper",
+  "pixel",
+  "astro",
+  "silent",
+  "pickle",
+  "rapid",
+  "muffin",
+  "penguin",
+] as const;
+
+const PLACEHOLDER_SECOND = [
+  "ninja",
+  "badger",
+  "llama",
+  "rocket",
+  "wizard",
+  "pirate",
+  "otter",
+  "cobra",
+  "falcon",
+  "yeti",
+  "goblin",
+  "robot",
+  "kraken",
+  "troll",
+  "hamster",
+  "platypus",
+] as const;
+
+function pick<T extends readonly string[]>(arr: T): T[number] {
+  return arr[Math.floor(Math.random() * arr.length)]!;
+}
+
+function randomHex5(): string {
+  return randomBytes(3).toString("hex").slice(0, 5);
+}
+
 export function randomListenPlaceholderName(): string {
-  return `listen-${randomBytes(4).toString("hex")}`;
+  const a = pick(PLACEHOLDER_FIRST);
+  const b = pick(PLACEHOLDER_SECOND);
+  return `${a}-${b}-${randomHex5()}`;
 }
 
 export async function promptListenInteractive(
