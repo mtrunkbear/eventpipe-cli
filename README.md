@@ -11,7 +11,7 @@ Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundl
 | Area | What the CLI does |
 |------|-------------------|
 | **Account** | Sign in with the browser (`login`) — same account as the web app; credentials are stored locally for later commands. |
-| **Webhooks** | Create endpoints (`create`), listen to the relay in real time (`listen`), optionally **replay** requests to a local URL (`--forward-to`). |
+| **Webhooks** | Create endpoints (`create`), listen to the relay in real time (`listen`), optionally **replay** requests to a local URL (`--forward-to`). **`listen` without login** uses a **guest demo** (capped events/time); **with login** and no id, the CLI **prompts** for a label and optional forward URL. |
 | **Bundles** | Compile TypeScript handlers to `.eventpipe/` (`build`) with size and sha256 output. |
 | **Deploy** | Publish a **new pipeline version** (`push`) using your saved session after `login` — same server route as Pipe Studio. |
 | **Tooling** | Print version (`--version`), upgrade the CLI (`update`), optional npm “newer version” hints on stderr, and **`install-cursor-skill`** to copy the bundled **Cursor** agent skill (`eventpipe-debug`). |
@@ -21,9 +21,9 @@ Official command-line tool for **[Event Pipe](https://eventpipe.app)** — bundl
 ## Requirements
 
 - **Node.js 20+** ([nodejs.org](https://nodejs.org))
-- An Event Pipe account ([eventpipe.app](https://eventpipe.app))
+- An Event Pipe account ([eventpipe.app](https://eventpipe.app)) for **`create`**, **`push`**, and **full** **`listen`** (owned endpoints)
 - For **`push` / `build`**: an **`eventpipe.json`** at the project root with **`pipelineId`** and **`settings.pipe`** (v3)
-- For **`listen`** / **`create` / `push`**: run **`eventpipe login`** first (except where noted)
+- For **guest `listen`** (no account): nothing else — uses **`EVENTPIPE_BASE_URL`** (default **`https://eventpipe.app`**) to reach the app’s guest listen API
 
 ---
 
@@ -67,12 +67,23 @@ node dist/cli.js --help
 
 ## Quick start
 
+**With an account** (stable endpoint):
+
 ```bash
 npm install -g @eventpipe/cli
 eventpipe login
 eventpipe create --name my-endpoint
 eventpipe listen <webhookId>
 ```
+
+**Try `listen` without logging in** (demo: limited events and time; the CLI prints the webhook URL):
+
+```bash
+eventpipe listen
+# or: eventpipe listen my-demo-id
+```
+
+**Logged in, no webhook id yet** — the CLI asks for an **endpoint name** (suggested placeholder like `monkey-ninja-a3f9b`) and whether to **forward** to a local URL; it creates the endpoint then streams.
 
 In a folder with **`eventpipe.json`** and **`src/handler.ts`**:
 
@@ -92,7 +103,8 @@ Default app URL for **`login`** is **`https://eventpipe.app`**. For a self-hoste
 
 - Opens the **browser** to sign in with your Event Pipe account.
 - Saves session data to **`~/.eventpipe/credentials.json`** (Unix) or your user profile on Windows.
-- **Required** before **`create`**, **`listen`**, and **`push`** (unless you already logged in earlier on this machine).
+- Clears **`~/.eventpipe/guest-listen.json`** if present (guest demo session file).
+- **Required** before **`create`**, **`listen`** on **your** endpoints (by id), and **`push`** (unless you already logged in earlier on this machine). Guest **`listen`** does not require login.
 - **`EVENTPIPE_BASE_URL`**: optional; defaults to **`https://eventpipe.app`**. Use your own origin for self-hosted apps.
 
 ### `eventpipe create [--name <slug>]`
@@ -102,26 +114,39 @@ Default app URL for **`login`** is **`https://eventpipe.app`**. For a self-hoste
 - Without **`--name`**, the URL and label are generated.
 - Output includes the **webhook URL** and id — use the id with **`listen`**.
 
-### `eventpipe listen <webhookId> [options]`
+### `eventpipe listen [webhookId] [options]`
 
-Streams **captured** webhooks for that endpoint through Event Pipe’s relay. You must have run **`eventpipe login`** first.
+Streams **captured** webhooks for an endpoint through Event Pipe’s relay. Behavior depends on **login** and whether you pass **`webhookId`**:
+
+| Situation | What happens |
+|-----------|----------------|
+| **Logged in** + **`webhookId`** | Opens a relay stream for **your** endpoint (same as before). |
+| **Logged in** + **no `webhookId`** | **Interactive** (TTY only): prompts for an **endpoint name** (default is a random fun placeholder, e.g. `cosmic-otter-glitch-7a2b1`), then **Forward webhooks to a local URL?** — if yes, prompts for URL (default `http://127.0.0.1:3000/api/webhooks`). Creates the endpoint via the API, then listens. If you already passed **`--forward-to`**, the forward question is skipped. |
+| **Not logged in** + **no `webhookId`** | **Guest demo**: allocates a temporary guest endpoint on the server, saves **`~/.eventpipe/guest-listen.json`** (session + secret, chmod **600**), streams until **limits** are hit (see below). |
+| **Not logged in** + **`webhookId`** | Guest listen for that id (first run creates it; reuse needs the saved guest file). |
+
+**Guest demo limits** (server + CLI): about **25 events** and **15 minutes** per run; the CLI nudges **`eventpipe login`** for unlimited listening and stable endpoints. Endpoints created only in the **browser** as a guest (no CLI secret) cannot be used for guest CLI listen on that id — pick another id or sign in.
+
+**Non-interactive:** if you are **logged in** and omit **`webhookId`** without a TTY, the CLI errors; pass an explicit id or use **`eventpipe create`** first.
 
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--verbose` | `-v` | After the summary line, print the **full event** JSON (method, headers, query, body). |
 | `--json` | | One **JSON object per line** on stdout (NDJSON) — easy to pipe to **`jq`** or scripts. |
-| `--forward-to <url>` | | **HTTP replay**: send each event to your URL (e.g. local server). Status lines go to **stderr** so **`--json`** stays clean on stdout. |
+| `--forward-to <url>` | | **HTTP replay**: send each event to your URL (e.g. local server). Status lines go to **stderr** so **`--json`** stays clean on stdout. When logged in without **`webhookId`**, sets forwarding and **skips** the forward prompt. |
 
 Examples:
 
 ```bash
+eventpipe listen
 eventpipe listen abc123
 eventpipe listen abc123 -v
 eventpipe listen abc123 --json | jq .
 eventpipe listen abc123 --forward-to http://127.0.0.1:3000/webhook
+eventpipe listen --forward-to http://127.0.0.1:3000/api/webhooks
 ```
 
-The hosted product must have a compatible **relay** configured (see your deployment’s environment docs).
+The hosted product must have a compatible **relay** and (for guest listen) the **guest listen token** API enabled (see server deployment docs).
 
 ### `eventpipe build [--dir <path>]`
 
@@ -273,6 +298,14 @@ In production, secrets are read from **`context.env`**, configured in the app **
 | **`src/handler.ts`** | Default entry if **`entry`** is omitted — **`export async function handler(event, context)`**. |
 | **`.eventpipe/`** | Generated bundles (from **`build`** / **`push`**). |
 
+## Local CLI files (`~/.eventpipe/`)
+
+| File | Purpose |
+|------|---------|
+| **`credentials.json`** | Session from **`eventpipe login`** (access + refresh tokens, base URL). |
+| **`guest-listen.json`** | Guest **`listen`** session (`webhookId`, `guestCliToken`, `baseUrl`) for reconnecting without login. Removed when the guest session ends (limits) or after **`eventpipe login`**. |
+| **`mcp.json`** | API key for **`eventpipe mcp serve`** (from **`mcp setup`**). |
+
 ---
 
 ## Update hints
@@ -289,6 +322,7 @@ After most commands, the CLI may query npm for a newer **`@eventpipe/cli`** and 
 
 ## Limits
 
+- **Guest `listen`**: capped demo (event + time limits); sign in for unlimited streaming on owned endpoints.
 - **~200KB** per code-node bundle (UTF-8), enforced locally and on the server.
 - This CLI’s ergonomics focus on **single-code-node** or explicitly mapped **`codeNodes`**; very large graphs can also be published from the **[dashboard](https://eventpipe.app)**.
 
