@@ -1,6 +1,6 @@
 {
   "name": "@eventpipe/cli",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Official Event Pipe CLI: webhook endpoints, TypeScript pipeline bundles (esbuild), deploy versions, live relay (listen/forward-to), Model Context Protocol for Cursor — same account as eventpipe.app",
   "keywords": [
     "eventpipe",
