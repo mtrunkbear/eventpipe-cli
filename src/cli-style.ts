@@ -94,8 +94,8 @@ export function printUsage(version: string, baseUrlHint: string): void {
   console.log(color ? `${DIM}Tips for getting started:${RESET}` : "Tips for getting started:");
   const t1 = color ? `${DIM}1.${RESET} Run ${ACCENT}eventpipe login${RESET} to authenticate in the browser.` : "1. Run eventpipe login to authenticate in the browser.";
   const t2 = color
-    ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen <webhookId>${RESET} to stream webhooks locally.`
-    : "2. Use eventpipe listen <webhookId> to stream webhooks locally.";
+    ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen [webhookId]${RESET} to stream webhooks locally (omit id to try without an account).`
+    : "2. Use eventpipe listen [webhookId] to stream webhooks locally (omit id to try without an account).";
   const t3 = color
     ? `${DIM}3.${RESET} ${ACCENT}eventpipe mcp setup${RESET} for Cursor, Claude Code, or Claude Desktop (debug with AI).`
     : "3. eventpipe mcp setup for Cursor, Claude Code, or Claude Desktop (debug with AI).";
@@ -127,9 +127,10 @@ export function printUsage(version: string, baseUrlHint: string): void {
     { name: "login", desc: ["Browser login (stores ~/.eventpipe/credentials.json)"] },
     { name: "create [--name <s>]", desc: ["Create a webhook endpoint (requires login)"] },
     {
-      name: "listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]",
+      name: "listen [webhookId] [--verbose|-v] [--json] [--forward-to <url>]",
       desc: [
-        "Stream webhooks; --verbose prints full JSON event; --json one NDJSON line per event;",
+        "Stream webhooks; without login: optional webhookId (auto if omitted), capped demo session;",
+        "--verbose prints full JSON event; --json one NDJSON line per event;",
         "--forward-to replays the request to your local server (status on stderr)",
       ],
     },
@@ -195,4 +196,76 @@ export function defaultBaseUrlHint(): string {
     return `base URL ${u}`;
   }
   return "base URL https://eventpipe.app (default)";
+}
+
+export function printGuestListenIntro(
+  webhookUrl: string,
+  maxEvents: number,
+  sessionMinutes: number,
+  color: boolean = useColor(),
+): void {
+  const warn = color ? "\x1b[38;2;234;179;8m" : "";
+  const reset = color ? RESET : "";
+  const dim = color ? DIM : "";
+  const accent = color ? ACCENT : "";
+  console.log(
+    color
+      ? `${warn}!${reset}  ${dim}Guest mode${reset} — ${maxEvents} events · ${sessionMinutes} min · endpoint is not tied to an account`
+      : `!  Guest mode — ${maxEvents} events · ${sessionMinutes} min · endpoint is not tied to an account`,
+  );
+  console.log("");
+  console.log(color ? `   ${dim}Webhook URL:${reset}` : "   Webhook URL:");
+  console.log(color ? `   ${accent}${webhookUrl}${reset}` : `   ${webhookUrl}`);
+  console.log("");
+  console.log(
+    color
+      ? `   Run ${accent}eventpipe login${reset} ${dim}for a stable endpoint and unlimited listening.${reset}`
+      : `   Run eventpipe login for a stable endpoint and unlimited listening.`,
+  );
+  console.log("");
+}
+
+export function printGuestListenMilestone(current: number, max: number, color: boolean = useColor()): void {
+  const dim = color ? DIM : "";
+  const accent = color ? ACCENT : "";
+  const reset = color ? RESET : "";
+  const suffix =
+    current >= max - 1
+      ? color
+        ? ` ${dim}[${current}/${max} — ${accent}eventpipe login${reset}${dim} removes this cap]${reset}`
+        : ` [${current}/${max} — eventpipe login removes this cap]`
+      : color
+        ? ` ${dim}[${current}/${max}]${reset}`
+        : ` [${current}/${max}]`;
+  process.stderr.write(`${suffix}\n`);
+}
+
+export function printGuestListenEnd(reason: "events" | "time", color: boolean = useColor()): void {
+  const dim = color ? DIM : "";
+  const accent = color ? ACCENT : "";
+  const reset = color ? RESET : "";
+  const line = color ? `${dim}──────────────────────────────────────────────${reset}` : "──────────────────────────────────────────────";
+  console.log("");
+  console.log(line);
+  if (reason === "events") {
+    console.log(
+      color
+        ? `  ${dim}Guest session ended — event limit reached.${reset}`
+        : "  Guest session ended — event limit reached.",
+    );
+  } else {
+    console.log(
+      color
+        ? `  ${dim}Guest session ended — time limit reached.${reset}`
+        : "  Guest session ended — time limit reached.",
+    );
+  }
+  console.log("");
+  console.log(
+    color
+      ? `    ${accent}eventpipe login${reset} ${dim}— unlimited listen, same account as the web app${reset}`
+      : "    eventpipe login — unlimited listen, same account as the web app",
+  );
+  console.log(line);
+  console.log("");
 }

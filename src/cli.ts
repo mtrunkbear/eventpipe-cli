@@ -232,15 +232,18 @@ async function main() {
     } catch (e) {
       console.error(e instanceof Error ? e.message : e);
       console.error(
-        "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]",
+        "Usage: eventpipe listen [webhookId] [--verbose|-v] [--json] [--forward-to <url>]",
       );
       process.exit(1);
     }
     if (!parsed.webhookId) {
-      console.error(
-        "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>]",
-      );
-      process.exit(1);
+      const cred = await loadCredentials();
+      if (cred) {
+        console.error(
+          "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>] (webhook id required when logged in)",
+        );
+        process.exit(1);
+      }
     }
     void maybeSuggestUpdate();
     await cmdListen(parsed.webhookId, parsed.options);

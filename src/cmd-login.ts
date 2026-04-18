@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
 import { resolveEventpipeBaseUrl } from "./base-url.js";
 import { saveCredentials, type StoredCredentials } from "./credentials.js";
+import { clearGuestListenSession } from "./guest-listen-session.js";
 
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -70,6 +71,7 @@ export async function cmdLogin(): Promise<void> {
                 refreshToken: data.refresh_token,
               };
               await saveCredentials(stored);
+              await clearGuestListenSession();
               res.writeHead(200, { "content-type": "application/json", ...cors });
               res.end(JSON.stringify({ ok: true }));
               server.close(() => done(() => resolve()));
