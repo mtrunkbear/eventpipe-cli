@@ -9,7 +9,9 @@ import {
   loadGuestListenSession,
   saveGuestListenSession,
 } from "./guest-listen-session.js";
+import { createEndpoint } from "./cmd-create.js";
 import { printGuestListenEnd, printGuestListenIntro, printGuestListenMilestone } from "./cli-style.js";
+import { promptListenInteractive } from "./listen-interactive.js";
 
 const GUEST_DEFAULT_MAX_EVENTS = 25;
 const GUEST_DEFAULT_SESSION_MIN = 15;
@@ -146,9 +148,20 @@ async function connectRelayAndStream(
 export async function cmdListen(webhookIdArg: string, options: ListenOptions): Promise<void> {
   const cred = await loadCredentials();
   if (cred) {
-    const wid = webhookIdArg.trim();
+    let wid = webhookIdArg.trim();
+    let opts = options;
+
     if (!wid) {
-      throw new Error("webhook id is required when logged in");
+      const interactive = await promptListenInteractive(options);
+      opts = interactive.options;
+      const created = await createEndpoint(cred, interactive.displayName);
+      wid = created.webhookId;
+      if (created.slugUnavailable && created.requestedSlug) {
+        console.log(
+          `\u26A0 Slug "${created.requestedSlug}" is already taken; created with a random id instead.`,
+        );
+      }
+      console.log(`${created.webhookUrl}\n`);
     }
 
     const { response } = await fetchWithSession(
@@ -178,11 +191,11 @@ export async function cmdListen(webhookIdArg: string, options: ListenOptions): P
     }
 
     console.log(`\u{1F50C} Conectado a ${wid}`);
-    if (options.forwardTo) {
-      console.error(`\u21AA forwarding to ${options.forwardTo}`);
+    if (opts.forwardTo) {
+      console.error(`\u21AA forwarding to ${opts.forwardTo}`);
     }
 
-    await connectRelayAndStream(wid, data.relayWsUrl, data.token, options, null);
+    await connectRelayAndStream(wid, data.relayWsUrl, data.token, opts, null);
     return;
   }
 

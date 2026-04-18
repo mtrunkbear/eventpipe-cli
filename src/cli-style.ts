@@ -94,8 +94,8 @@ export function printUsage(version: string, baseUrlHint: string): void {
   console.log(color ? `${DIM}Tips for getting started:${RESET}` : "Tips for getting started:");
   const t1 = color ? `${DIM}1.${RESET} Run ${ACCENT}eventpipe login${RESET} to authenticate in the browser.` : "1. Run eventpipe login to authenticate in the browser.";
   const t2 = color
-    ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen [webhookId]${RESET} to stream webhooks locally (omit id to try without an account).`
-    : "2. Use eventpipe listen [webhookId] to stream webhooks locally (omit id to try without an account).";
+    ? `${DIM}2.${RESET} Use ${ACCENT}eventpipe listen [webhookId]${RESET} to stream webhooks (no id: guest demo, or prompts when logged in).`
+    : "2. Use eventpipe listen [webhookId] to stream webhooks (no id: guest demo, or prompts when logged in).";
   const t3 = color
     ? `${DIM}3.${RESET} ${ACCENT}eventpipe mcp setup${RESET} for Cursor, Claude Code, or Claude Desktop (debug with AI).`
     : "3. eventpipe mcp setup for Cursor, Claude Code, or Claude Desktop (debug with AI).";
@@ -129,9 +129,9 @@ export function printUsage(version: string, baseUrlHint: string): void {
     {
       name: "listen [webhookId] [--verbose|-v] [--json] [--forward-to <url>]",
       desc: [
-        "Stream webhooks; without login: optional webhookId (auto if omitted), capped demo session;",
+        "Stream webhooks; no id + no login: auto guest demo; no id + logged in: prompts for name & optional forward;",
         "--verbose prints full JSON event; --json one NDJSON line per event;",
-        "--forward-to replays the request to your local server (status on stderr)",
+        "--forward-to skips the forward prompt when logged in without webhookId",
       ],
     },
     { name: "build [--dir <path>]", desc: ["Bundle TS into .eventpipe/"] },

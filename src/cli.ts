@@ -236,15 +236,6 @@ async function main() {
       );
       process.exit(1);
     }
-    if (!parsed.webhookId) {
-      const cred = await loadCredentials();
-      if (cred) {
-        console.error(
-          "Usage: eventpipe listen <webhookId> [--verbose|-v] [--json] [--forward-to <url>] (webhook id required when logged in)",
-        );
-        process.exit(1);
-      }
-    }
     void maybeSuggestUpdate();
     await cmdListen(parsed.webhookId, parsed.options);
     return;
