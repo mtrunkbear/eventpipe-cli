@@ -9,6 +9,11 @@ export type CreatedEndpoint = {
   requestedSlug?: string;
 };
 
+export type CreateEndpointResult = {
+  endpoint: CreatedEndpoint;
+  credentials: StoredCredentials;
+};
+
 function parseName(argv: string[]): string {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--name" && argv[i + 1]) {
@@ -18,8 +23,21 @@ function parseName(argv: string[]): string {
   return "";
 }
 
-export async function createEndpoint(cred: StoredCredentials, name: string | undefined): Promise<CreatedEndpoint> {
-  const { response } = await fetchWithSession(
+function throwApiError(response: Response, data: { error?: string }): never {
+  const msg = data.error ?? response.statusText;
+  if (response.status === 401) {
+    throw new Error(
+      `Not authenticated (${msg}). Run: eventpipe login — or remove ~/.eventpipe/credentials.json to use guest listen without an account.`,
+    );
+  }
+  throw new Error(msg);
+}
+
+export async function createEndpoint(
+  cred: StoredCredentials,
+  name: string | undefined,
+): Promise<CreateEndpointResult> {
+  const { response, credentials } = await fetchWithSession(
     `${cred.baseUrl}/api/account/endpoints`,
     {
       method: "POST",
@@ -38,7 +56,7 @@ export async function createEndpoint(cred: StoredCredentials, name: string | und
     requestedSlug?: string;
   };
   if (!response.ok) {
-    throw new Error(data.error ?? response.statusText);
+    throwApiError(response, data);
   }
 
   if (!data.webhookId || !data.webhookUrl) {
@@ -46,11 +64,14 @@ export async function createEndpoint(cred: StoredCredentials, name: string | und
   }
 
   return {
-    webhookId: data.webhookId,
-    webhookUrl: data.webhookUrl,
-    label: data.label,
-    slugUnavailable: data.slugUnavailable,
-    requestedSlug: data.requestedSlug,
+    credentials,
+    endpoint: {
+      webhookId: data.webhookId,
+      webhookUrl: data.webhookUrl,
+      label: data.label,
+      slugUnavailable: data.slugUnavailable,
+      requestedSlug: data.requestedSlug,
+    },
   };
 }
 
@@ -61,7 +82,7 @@ export async function cmdCreate(argv: string[]): Promise<void> {
   }
 
   const name = parseName(argv);
-  const data = await createEndpoint(cred, name || undefined);
+  const { endpoint: data } = await createEndpoint(cred, name || undefined);
 
   if (data.slugUnavailable && data.requestedSlug) {
     console.log(

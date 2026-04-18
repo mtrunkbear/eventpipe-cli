@@ -146,7 +146,7 @@ async function connectRelayAndStream(
 }
 
 export async function cmdListen(webhookIdArg: string, options: ListenOptions): Promise<void> {
-  const cred = await loadCredentials();
+  let cred = await loadCredentials();
   if (cred) {
     let wid = webhookIdArg.trim();
     let opts = options;
@@ -154,7 +154,11 @@ export async function cmdListen(webhookIdArg: string, options: ListenOptions): P
     if (!wid) {
       const interactive = await promptListenInteractive(options);
       opts = interactive.options;
-      const created = await createEndpoint(cred, interactive.displayName);
+      const { endpoint: created, credentials: credAfterCreate } = await createEndpoint(
+        cred,
+        interactive.displayName,
+      );
+      cred = credAfterCreate;
       wid = created.webhookId;
       if (created.slugUnavailable && created.requestedSlug) {
         console.log(
@@ -181,7 +185,13 @@ export async function cmdListen(webhookIdArg: string, options: ListenOptions): P
     };
 
     if (!response.ok) {
-      throw new Error(data.error ?? response.statusText);
+      const msg = data.error ?? response.statusText;
+      if (response.status === 401) {
+        throw new Error(
+          `Not authenticated (${msg}). Run: eventpipe login — or remove ~/.eventpipe/credentials.json for guest listen.`,
+        );
+      }
+      throw new Error(msg);
     }
 
     if (!data.token || !data.relayWsUrl) {
