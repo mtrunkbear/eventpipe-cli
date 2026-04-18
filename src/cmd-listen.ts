@@ -11,7 +11,7 @@ import {
 } from "./guest-listen-session.js";
 import { createEndpoint } from "./cmd-create.js";
 import { printGuestListenEnd, printGuestListenIntro, printGuestListenMilestone } from "./cli-style.js";
-import { promptListenInteractive } from "./listen-interactive.js";
+import { promptGuestListenInteractive, promptListenInteractive } from "./listen-interactive.js";
 
 const GUEST_DEFAULT_MAX_EVENTS = 25;
 const GUEST_DEFAULT_SESSION_MIN = 15;
@@ -200,7 +200,7 @@ export async function cmdListen(webhookIdArg: string, options: ListenOptions): P
       );
     }
 
-    console.log(`\u{1F50C} Conectado a ${wid}`);
+    console.log(`\u{1F50C} Connected to ${wid}`);
     if (opts.forwardTo) {
       console.error(`\u21AA forwarding to ${opts.forwardTo}`);
     }
@@ -214,8 +214,17 @@ export async function cmdListen(webhookIdArg: string, options: ListenOptions): P
 
 async function cmdListenGuest(webhookIdArg: string, options: ListenOptions): Promise<void> {
   const base = resolveEventpipeBaseUrl();
-  const trimmedArg = webhookIdArg.trim();
+  let trimmedArg = webhookIdArg.trim();
+  let opts = options;
   const session = await loadGuestListenSession(base);
+
+  if (!trimmedArg && !session) {
+    const prompted = await promptGuestListenInteractive(options);
+    if (prompted) {
+      trimmedArg = prompted.webhookId;
+      opts = prompted.options;
+    }
+  }
 
   const body: { webhookId?: string; guestCliToken?: string } = {};
   if (trimmedArg) {
@@ -269,14 +278,14 @@ async function cmdListenGuest(webhookIdArg: string, options: ListenOptions): Pro
 
   printGuestListenIntro(data.webhookUrl, maxEvents, sessionMin);
 
-  console.log(`\u{1F50C} Guest listen: ${data.webhookId}`);
-  if (options.forwardTo) {
-    console.error(`\u21AA forwarding to ${options.forwardTo}`);
+  console.log(`\u{1F50C} Listening on ${data.webhookId}`);
+  if (opts.forwardTo) {
+    console.error(`\u21AA forwarding to ${opts.forwardTo}`);
   }
 
   let endReason: "events" | "time" | null = null;
 
-  await connectRelayAndStream(data.webhookId, data.relayWsUrl, data.token, options, {
+  await connectRelayAndStream(data.webhookId, data.relayWsUrl, data.token, opts, {
     maxEvents,
     sessionMs: sessionMin * 60_000,
     onSessionEnd: (r) => {

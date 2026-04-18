@@ -184,6 +184,21 @@ export function randomListenPlaceholderName(): string {
   return `${a}-${b}-${hex}`;
 }
 
+async function promptForwardTo(
+  rl: Awaited<ReturnType<typeof createInterface>>,
+  current: string | null,
+): Promise<string | null> {
+  if (current) {
+    return current;
+  }
+  const yn = (await rl.question("Forward to a local URL? [y/N]: ")).trim().toLowerCase();
+  if (yn === "y" || yn === "yes") {
+    const urlLine = await rl.question(`Local URL [${DEFAULT_FORWARD_URL}]: `);
+    return urlLine.trim() || DEFAULT_FORWARD_URL;
+  }
+  return null;
+}
+
 export async function promptListenInteractive(
   options: ListenOptions,
 ): Promise<{ displayName: string; options: ListenOptions }> {
@@ -198,20 +213,27 @@ export async function promptListenInteractive(
     const placeholder = randomListenPlaceholderName();
     const nameLine = await rl.question(`Endpoint name [${placeholder}]: `);
     const displayName = nameLine.trim() || placeholder;
+    const forwardTo = await promptForwardTo(rl, options.forwardTo);
+    return { displayName, options: { ...options, forwardTo } };
+  } finally {
+    rl.close();
+  }
+}
 
-    let forwardTo = options.forwardTo;
-    if (!forwardTo) {
-      const yn = (await rl.question("Forward webhooks to a local URL? [y/N]: ")).trim().toLowerCase();
-      if (yn === "y" || yn === "yes") {
-        const urlLine = await rl.question(`Local URL [${DEFAULT_FORWARD_URL}]: `);
-        forwardTo = urlLine.trim() || DEFAULT_FORWARD_URL;
-      }
-    }
+export async function promptGuestListenInteractive(
+  options: ListenOptions,
+): Promise<{ webhookId: string; options: ListenOptions } | null> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return null;
+  }
 
-    return {
-      displayName,
-      options: { ...options, forwardTo },
-    };
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const placeholder = randomListenPlaceholderName();
+    const idLine = await rl.question(`Webhook ID [${placeholder}]: `);
+    const webhookId = idLine.trim() || placeholder;
+    const forwardTo = await promptForwardTo(rl, options.forwardTo);
+    return { webhookId, options: { ...options, forwardTo } };
   } finally {
     rl.close();
   }
