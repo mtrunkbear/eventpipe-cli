@@ -25,6 +25,35 @@ const PLACEHOLDER_FIRST = [
   "rapid",
   "muffin",
   "penguin",
+  "rusty",
+  "sneaky",
+  "sleepy",
+  "spicy",
+  "brave",
+  "clumsy",
+  "elite",
+  "hollow",
+  "icy",
+  "lucky",
+  "muddy",
+  "dusty",
+  "bouncy",
+  "grumpy",
+  "shiny",
+  "stormy",
+  "zesty",
+  "mighty",
+  "wobbly",
+  "velvet",
+  "crimson",
+  "golden",
+  "silver",
+  "electric",
+  "frozen",
+  "blazing",
+  "soggy",
+  "chunky",
+  "nervous",
 ] as const;
 
 const PLACEHOLDER_SECOND = [
@@ -44,20 +73,115 @@ const PLACEHOLDER_SECOND = [
   "troll",
   "hamster",
   "platypus",
+  "mongoose",
+  "capybara",
+  "raccoon",
+  "walrus",
+  "jackal",
+  "beaver",
+  "gecko",
+  "axolotl",
+  "wombat",
+  "quokka",
+  "narwhal",
+  "hedgehog",
+  "ferret",
+  "heron",
+  "macaw",
+  "bison",
+  "coyote",
+  "raven",
+  "newt",
+  "puffin",
+  "sloth",
+  "toucan",
+  "viper",
+  "dingo",
+  "manatee",
+  "caribou",
+  "lobster",
+  "octopus",
+  "squid",
+  "cuttlefish",
+  "cassowary",
+  "blobfish",
 ] as const;
 
+const PLACEHOLDER_SPICE = [
+  "prime",
+  "ultra",
+  "neo",
+  "retro",
+  "mega",
+  "micro",
+  "proto",
+  "shadow",
+  "ghost",
+  "thunder",
+  "frost",
+  "blaze",
+  "nova",
+  "echo",
+  "pulse",
+  "drift",
+  "spark",
+  "glitch",
+  "vortex",
+  "shard",
+  "omega",
+  "alpha",
+  "sigma",
+  "void",
+  "flux",
+  "surge",
+  "ripple",
+  "prism",
+  "nexus",
+  "zenith",
+] as const;
+
+const SPICE_CHANCE_256 = Math.floor((256 * 40) / 100);
+
+function uniform256(): number {
+  return randomBytes(1)[0]!;
+}
+
+function uniformIntBelow(n: number): number {
+  if (n <= 0) {
+    throw new Error("n must be positive");
+  }
+  const limit = 256 - (256 % n);
+  let x: number;
+  do {
+    x = uniform256();
+  } while (x >= limit);
+  return x % n;
+}
+
 function pick<T extends readonly string[]>(arr: T): T[number] {
-  return arr[Math.floor(Math.random() * arr.length)]!;
+  return arr[uniformIntBelow(arr.length)]!;
 }
 
 function randomHex5(): string {
   return randomBytes(3).toString("hex").slice(0, 5);
 }
 
+function maybeSpiceThirdSegment(): string | null {
+  if (uniform256() >= SPICE_CHANCE_256) {
+    return null;
+  }
+  return pick(PLACEHOLDER_SPICE);
+}
+
 export function randomListenPlaceholderName(): string {
   const a = pick(PLACEHOLDER_FIRST);
   const b = pick(PLACEHOLDER_SECOND);
-  return `${a}-${b}-${randomHex5()}`;
+  const hex = randomHex5();
+  const spice = maybeSpiceThirdSegment();
+  if (spice) {
+    return `${a}-${b}-${spice}-${hex}`;
+  }
+  return `${a}-${b}-${hex}`;
 }
 
 export async function promptListenInteractive(
